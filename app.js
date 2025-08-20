@@ -19,6 +19,12 @@ let currentParam = null;
 document.addEventListener('DOMContentLoaded', initializeApp);
 
 async function initializeApp() {
+    // Show loading overlay
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if (loadingOverlay) {
+        loadingOverlay.classList.remove('hidden');
+    }
+
     // Register service worker for PWA functionality
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -60,7 +66,13 @@ async function initializeApp() {
 
     } catch (error) {
         console.error("Fatal Error: Failed to load or migrate data.", error);
-        alert("حدث خطأ فادح أثناء تحميل البيانات. سيعمل التطبيق بحالة فارغة.");
+        showNotification("حدث خطأ فادح أثناء تحميل البيانات. سيعمل التطبيق بحالة فارغة.", 'danger');
+        
+        // Hide loading overlay even if there's an error
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay) {
+            loadingOverlay.classList.add('hidden');
+        }
     }
 
     // Ensure default safe exists
@@ -75,6 +87,14 @@ async function initializeApp() {
     saveState();
     updateUndoRedoButtons();
     nav('dash');
+
+    // Hide loading overlay after everything is ready
+    setTimeout(() => {
+        const loadingOverlay = document.getElementById('loading-overlay');
+        if (loadingOverlay) {
+            loadingOverlay.classList.add('hidden');
+        }
+    }, 500);
 }
 
 function initializeDefaultState() {
