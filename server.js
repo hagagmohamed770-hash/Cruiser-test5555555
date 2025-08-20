@@ -4,137 +4,131 @@ const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
-const fs = require('fs');
-
-// Import database and routes
 const Database = require('./database/database');
-const authRoutes = require('./routes/auth');
-const customersRoutes = require('./routes/customers');
-const unitsRoutes = require('./routes/units');
-const contractsRoutes = require('./routes/contracts');
-const installmentsRoutes = require('./routes/installments');
-const partnersRoutes = require('./routes/partners');
-const brokersRoutes = require('./routes/brokers');
-const vouchersRoutes = require('./routes/vouchers');
-const treasuryRoutes = require('./routes/treasury');
-const reportsRoutes = require('./routes/reports');
-const backupRoutes = require('./routes/backup');
-const auditRoutes = require('./routes/audit');
 
+// إنشاء تطبيق Express
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Security middleware
+// إعدادات الأمان
 app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
-            fontSrc: ["'self'", "https://fonts.gstatic.com"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-            imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'"]
-        }
-    }
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+    },
+  },
 }));
 
-// Rate limiting
+// Rate Limiting
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-    message: {
-        error: 'تم تجاوز الحد المسموح للطلبات، يرجى المحاولة لاحقاً'
-    }
+  windowMs: 15 * 60 * 1000, // 15 دقيقة
+  max: 100, // حد أقصى 100 طلب لكل IP
+  message: {
+    success: false,
+    message: 'تم تجاوز الحد الأقصى للطلبات. يرجى المحاولة لاحقاً.'
+  }
 });
 app.use('/api/', limiter);
 
-// Compression
+// Middleware
 app.use(compression());
-
-// CORS
-app.use(cors({
-    origin: process.env.NODE_ENV === 'production' ? false : true,
-    credentials: true
-}));
-
-// Body parsing middleware
+app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 
-// Static files
+// الملفات الثابتة
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Database initialization
+// تهيئة قاعدة البيانات
 const db = new Database();
-db.initialize();
+db.init().then(() => {
+  console.log('✅ تم تهيئة قاعدة البيانات بنجاح');
+}).catch(err => {
+  console.error('❌ خطأ في تهيئة قاعدة البيانات:', err);
+});
 
-// API Routes
+// استيراد المسارات
+const authRoutes = require('./routes/auth');
+const customerRoutes = require('./routes/customers');
+const unitRoutes = require('./routes/units');
+const contractRoutes = require('./routes/contracts');
+const installmentRoutes = require('./routes/installments');
+const partnerRoutes = require('./routes/partners');
+const brokerRoutes = require('./routes/brokers');
+const voucherRoutes = require('./routes/vouchers');
+const treasuryRoutes = require('./routes/treasury');
+const reportRoutes = require('./routes/reports');
+const backupRoutes = require('./routes/backup');
+const auditRoutes = require('./routes/audit');
+
+// تسجيل المسارات
 app.use('/api/auth', authRoutes);
-app.use('/api/customers', customersRoutes);
-app.use('/api/units', unitsRoutes);
-app.use('/api/contracts', contractsRoutes);
-app.use('/api/installments', installmentsRoutes);
-app.use('/api/partners', partnersRoutes);
-app.use('/api/brokers', brokersRoutes);
-app.use('/api/vouchers', vouchersRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/units', unitRoutes);
+app.use('/api/contracts', contractRoutes);
+app.use('/api/installments', installmentRoutes);
+app.use('/api/partners', partnerRoutes);
+app.use('/api/brokers', brokerRoutes);
+app.use('/api/vouchers', voucherRoutes);
 app.use('/api/treasury', treasuryRoutes);
-app.use('/api/reports', reportsRoutes);
+app.use('/api/reports', reportRoutes);
 app.use('/api/backup', backupRoutes);
 app.use('/api/audit', auditRoutes);
 
-// Health check endpoint
+// فحص صحة الخادم
 app.get('/api/health', (req, res) => {
-    res.json({
-        status: 'OK',
-        timestamp: new Date().toISOString(),
-        version: '5.0.0',
-        database: db.isConnected() ? 'Connected' : 'Disconnected'
-    });
+  res.json({
+    success: true,
+    message: 'الخادم يعمل بشكل طبيعي',
+    timestamp: new Date().toISOString(),
+    version: '5.0.0'
+  });
 });
 
-// Serve the main application
+// الصفحة الرئيسية
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Handle 404
-app.use('*', (req, res) => {
-    res.status(404).json({
-        error: 'الصفحة غير موجودة',
-        path: req.originalUrl
-    });
-});
-
-// Global error handler
+// معالجة الأخطاء العامة
 app.use((err, req, res, next) => {
-    console.error('Global error:', err);
-    
-    res.status(err.status || 500).json({
-        error: process.env.NODE_ENV === 'production' 
-            ? 'حدث خطأ في الخادم' 
-            : err.message,
-        ...(process.env.NODE_ENV !== 'production' && { stack: err.stack })
-    });
+  console.error('خطأ في الخادم:', err);
+  res.status(500).json({
+    success: false,
+    message: 'خطأ داخلي في الخادم',
+    error: process.env.NODE_ENV === 'development' ? err.message : undefined
+  });
 });
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-    console.log('SIGTERM received, shutting down gracefully');
-    db.close();
-    process.exit(0);
+// معالجة المسارات غير الموجودة
+app.use('*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'المسار غير موجود'
+  });
 });
 
-process.on('SIGINT', () => {
-    console.log('SIGINT received, shutting down gracefully');
-    db.close();
-    process.exit(0);
-});
-
-// Start server
+// بدء الخادم
 app.listen(PORT, () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`📊 Real Estate Management System v5.0.0`);
-    console.log(`🌐 Open http://localhost:${PORT} in your browser`);
+  console.log(`🚀 الخادم يعمل على المنفذ ${PORT}`);
+  console.log(`📱 يمكنك الوصول للنظام على: http://localhost:${PORT}`);
+  console.log(`🔧 وضع التشغيل: ${process.env.NODE_ENV || 'development'}`);
+});
+
+// معالجة إغلاق التطبيق
+process.on('SIGINT', async () => {
+  console.log('\n🛑 إغلاق الخادم...');
+  await db.close();
+  process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+  console.log('\n🛑 إغلاق الخادم...');
+  await db.close();
+  process.exit(0);
 });
 
 module.exports = app;
