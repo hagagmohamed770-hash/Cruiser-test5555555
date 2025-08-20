@@ -676,3 +676,842 @@ function renderCustomers() {
 // ... Additional render functions would follow the same pattern
 // Due to length constraints, this represents the refactored structure
 // The complete file would include all render functions with this improved pattern
+
+// Add missing render functions
+function renderDash() {
+    const totalCustomers = state.customers?.length || 0;
+    const totalUnits = state.units?.length || 0;
+    const totalContracts = state.contracts?.length || 0;
+    const totalPartners = state.partners?.length || 0;
+    
+    view.innerHTML = `
+        <div class="kpis">
+            <div class="card">
+                <h3>إجمالي العملاء</h3>
+                <div class="big">${totalCustomers}</div>
+            </div>
+            <div class="card">
+                <h3>إجمالي الوحدات</h3>
+                <div class="big">${totalUnits}</div>
+            </div>
+            <div class="card">
+                <h3>إجمالي العقود</h3>
+                <div class="big">${totalContracts}</div>
+            </div>
+            <div class="card">
+                <h3>إجمالي الشركاء</h3>
+                <div class="big">${totalPartners}</div>
+            </div>
+        </div>
+        <div class="panel">
+            <h3>مرحباً بك في مدير الاستثمار العقاري</h3>
+            <p>استخدم القائمة الجانبية للتنقل بين الأقسام المختلفة.</p>
+        </div>
+    `;
+}
+
+function renderOldDash() {
+    renderDash(); // Use the same as new dash for now
+}
+
+function renderUnits() {
+    let sort = { idx: 0, dir: 'asc' };
+
+    function draw() {
+        const query = (document.getElementById('u-q')?.value || '').trim().toLowerCase();
+        let list = state.units?.slice() || [];
+        
+        if (query) {
+            list = list.filter(unit => {
+                const searchable = `${unit.name || ''} ${unit.code || ''} ${unit.building || ''} ${unit.floor || ''}`.toLowerCase();
+                return searchable.includes(query);
+            });
+        }
+        
+        list.sort((a, b) => {
+            const colsA = [a.name || '', a.code || '', a.building || '', a.floor || ''];
+            const colsB = [b.name || '', b.code || '', b.building || '', b.floor || ''];
+            return (colsA[sort.idx] + '').localeCompare(colsB[sort.idx] + '') * (sort.dir === 'asc' ? 1 : -1);
+        });
+        
+        const rows = list.map(unit => [
+            `<a href="#" data-nav-id="unit-details" data-nav-param="${unit.id}">${unit.name || ''}</a>`,
+            unit.code || '',
+            unit.building || '',
+            unit.floor || '',
+            `<button class="btn secondary" data-del-coll="units" data-del-id="${unit.id}">حذف</button>`
+        ]);
+        
+        document.getElementById('u-list').innerHTML = table(
+            ['الاسم', 'الكود', 'العمارة', 'الدور', ''],
+            rows,
+            sort,
+            (newSort) => {
+                sort = newSort;
+                draw();
+            }
+        );
+    }
+
+    view.innerHTML = `
+        <div class="grid grid-2">
+            <div class="card">
+                <h3>إضافة وحدة</h3>
+                <div class="grid grid-2" style="gap: 10px;">
+                    <input class="input" id="u-name" placeholder="اسم الوحدة">
+                    <input class="input" id="u-code" placeholder="كود الوحدة">
+                    <input class="input" id="u-building" placeholder="رقم العمارة">
+                    <input class="input" id="u-floor" placeholder="رقم الدور">
+                </div>
+                <textarea class="input" id="u-notes" placeholder="ملاحظات" style="margin-top:10px;" rows="2"></textarea>
+                <button class="btn" id="add-unit-btn" style="margin-top:10px;">حفظ</button>
+            </div>
+            <div class="card">
+                <h3>الوحدات</h3>
+                <div class="tools">
+                    <input class="input" id="u-q" placeholder="بحث..." oninput="draw()">
+                    <button class="btn secondary" id="export-units-csv-btn">CSV</button>
+                    <button class="btn" id="print-units-pdf-btn">طباعة PDF</button>
+                </div>
+                <div id="u-list"></div>
+            </div>
+        </div>`;
+
+    draw();
+
+    // Attach Event Listeners
+    document.getElementById('add-unit-btn').addEventListener('click', async () => {
+        const name = document.getElementById('u-name').value.trim();
+        const code = document.getElementById('u-code').value.trim();
+        const building = document.getElementById('u-building').value.trim();
+        const floor = document.getElementById('u-floor').value.trim();
+        const notes = document.getElementById('u-notes').value.trim();
+        
+        if (!name || !code) {
+            return alert('الرجاء إدخال اسم الوحدة والكود على الأقل.');
+        }
+
+        saveState();
+        const newUnit = {
+            id: uid('U'),
+            name,
+            code,
+            building,
+            floor,
+            notes
+        };
+        
+        state.units = state.units || [];
+        state.units.push(newUnit);
+        logAction('إضافة وحدة جديدة', {
+            id: newUnit.id,
+            name: newUnit.name
+        });
+        
+        await persist();
+
+        // Clear form
+        document.getElementById('u-name').value = '';
+        document.getElementById('u-code').value = '';
+        document.getElementById('u-building').value = '';
+        document.getElementById('u-floor').value = '';
+        document.getElementById('u-notes').value = '';
+        
+        draw();
+    });
+
+    // Global event delegation
+    view.addEventListener('click', (e) => {
+        if (e.target.matches('[data-del-id]')) {
+            const id = e.target.dataset.delId;
+            const collection = e.target.dataset.delColl;
+            delRow(collection, id);
+        }
+        
+        if (e.target.matches('[data-nav-id]')) {
+            e.preventDefault();
+            const id = e.target.dataset.navId;
+            const param = e.target.dataset.navParam;
+            nav(id, param);
+        }
+    });
+}
+
+function renderContracts() {
+    let sort = { idx: 0, dir: 'asc' };
+
+    function draw() {
+        const query = (document.getElementById('co-q')?.value || '').trim().toLowerCase();
+        let list = state.contracts?.slice() || [];
+        
+        if (query) {
+            list = list.filter(contract => {
+                const customer = custById(contract.customerId);
+                const unit = unitById(contract.unitId);
+                const searchable = `${customer?.name || ''} ${unit?.name || ''} ${contract.type || ''}`.toLowerCase();
+                return searchable.includes(query);
+            });
+        }
+        
+        list.sort((a, b) => {
+            const customerA = custById(a.customerId);
+            const customerB = custById(b.customerId);
+            const colsA = [customerA?.name || '', a.type || '', a.startDate || ''];
+            const colsB = [customerB?.name || '', b.type || '', b.startDate || ''];
+            return (colsA[sort.idx] + '').localeCompare(colsB[sort.idx] + '') * (sort.dir === 'asc' ? 1 : -1);
+        });
+        
+        const rows = list.map(contract => {
+            const customer = custById(contract.customerId);
+            const unit = unitById(contract.unitId);
+            return [
+                `<a href="#" data-nav-id="contract-details" data-nav-param="${contract.id}">${customer?.name || ''}</a>`,
+                unit?.name || '',
+                contract.type || '',
+                contract.startDate || '',
+                `<button class="btn secondary" data-del-coll="contracts" data-del-id="${contract.id}">حذف</button>`
+            ];
+        });
+        
+        document.getElementById('co-list').innerHTML = table(
+            ['العميل', 'الوحدة', 'النوع', 'تاريخ البداية', ''],
+            rows,
+            sort,
+            (newSort) => {
+                sort = newSort;
+                draw();
+            }
+        );
+    }
+
+    view.innerHTML = `
+        <div class="grid grid-2">
+            <div class="card">
+                <h3>إنشاء عقد جديد</h3>
+                <select class="select" id="co-customer" style="margin-bottom:10px;">
+                    <option value="">اختر العميل</option>
+                    ${(state.customers || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+                </select>
+                <select class="select" id="co-unit" style="margin-bottom:10px;">
+                    <option value="">اختر الوحدة</option>
+                    ${(state.units || []).map(u => `<option value="${u.id}">${u.name}</option>`).join('')}
+                </select>
+                <select class="select" id="co-type" style="margin-bottom:10px;">
+                    <option value="بيع">بيع</option>
+                    <option value="إيجار">إيجار</option>
+                </select>
+                <input class="input" id="co-startDate" type="date" style="margin-bottom:10px;">
+                <input class="input" id="co-price" placeholder="السعر" style="margin-bottom:10px;">
+                <button class="btn" id="add-contract-btn">إنشاء العقد</button>
+            </div>
+            <div class="card">
+                <h3>العقود</h3>
+                <div class="tools">
+                    <input class="input" id="co-q" placeholder="بحث..." oninput="draw()">
+                    <button class="btn secondary" id="export-contracts-csv-btn">CSV</button>
+                    <button class="btn" id="print-contracts-pdf-btn">طباعة PDF</button>
+                </div>
+                <div id="co-list"></div>
+            </div>
+        </div>`;
+
+    draw();
+
+    // Attach Event Listeners
+    document.getElementById('add-contract-btn').addEventListener('click', async () => {
+        const customerId = document.getElementById('co-customer').value;
+        const unitId = document.getElementById('co-unit').value;
+        const type = document.getElementById('co-type').value;
+        const startDate = document.getElementById('co-startDate').value;
+        const price = parseNumber(document.getElementById('co-price').value);
+        
+        if (!customerId || !unitId || !startDate) {
+            return alert('الرجاء إدخال جميع البيانات المطلوبة.');
+        }
+
+        saveState();
+        const newContract = {
+            id: uid('CO'),
+            customerId,
+            unitId,
+            type,
+            startDate,
+            price,
+            createdAt: new Date().toISOString()
+        };
+        
+        state.contracts = state.contracts || [];
+        state.contracts.push(newContract);
+        logAction('إنشاء عقد جديد', {
+            id: newContract.id,
+            customerId: newContract.customerId,
+            unitId: newContract.unitId
+        });
+        
+        await persist();
+        draw();
+    });
+
+    // Global event delegation
+    view.addEventListener('click', (e) => {
+        if (e.target.matches('[data-del-id]')) {
+            const id = e.target.dataset.delId;
+            const collection = e.target.dataset.delColl;
+            delRow(collection, id);
+        }
+        
+        if (e.target.matches('[data-nav-id]')) {
+            e.preventDefault();
+            const id = e.target.dataset.navId;
+            const param = e.target.dataset.navParam;
+            nav(id, param);
+        }
+    });
+}
+
+function renderBrokers() {
+    let sort = { idx: 0, dir: 'asc' };
+
+    function draw() {
+        const query = (document.getElementById('b-q')?.value || '').trim().toLowerCase();
+        let list = state.brokers?.slice() || [];
+        
+        if (query) {
+            list = list.filter(broker => {
+                const searchable = `${broker.name || ''} ${broker.phone || ''} ${broker.commission || ''}`.toLowerCase();
+                return searchable.includes(query);
+            });
+        }
+        
+        list.sort((a, b) => {
+            const colsA = [a.name || '', a.phone || '', a.commission || ''];
+            const colsB = [b.name || '', b.phone || '', b.commission || ''];
+            return (colsA[sort.idx] + '').localeCompare(colsB[sort.idx] + '') * (sort.dir === 'asc' ? 1 : -1);
+        });
+        
+        const rows = list.map(broker => [
+            `<a href="#" data-nav-id="broker-details" data-nav-param="${broker.id}">${broker.name || ''}</a>`,
+            broker.phone || '',
+            broker.commission || '',
+            `<button class="btn secondary" data-del-coll="brokers" data-del-id="${broker.id}">حذف</button>`
+        ]);
+        
+        document.getElementById('b-list').innerHTML = table(
+            ['الاسم', 'الهاتف', 'العمولة', ''],
+            rows,
+            sort,
+            (newSort) => {
+                sort = newSort;
+                draw();
+            }
+        );
+    }
+
+    view.innerHTML = `
+        <div class="grid grid-2">
+            <div class="card">
+                <h3>إضافة سمسار</h3>
+                <input class="input" id="b-name" placeholder="اسم السمسار" style="margin-bottom:10px;">
+                <input class="input" id="b-phone" placeholder="الهاتف" style="margin-bottom:10px;">
+                <input class="input" id="b-commission" placeholder="نسبة العمولة %" style="margin-bottom:10px;">
+                <textarea class="input" id="b-notes" placeholder="ملاحظات" style="margin-bottom:10px;" rows="2"></textarea>
+                <button class="btn" id="add-broker-btn">حفظ</button>
+            </div>
+            <div class="card">
+                <h3>السماسرة</h3>
+                <div class="tools">
+                    <input class="input" id="b-q" placeholder="بحث..." oninput="draw()">
+                    <button class="btn secondary" id="export-brokers-csv-btn">CSV</button>
+                    <button class="btn" id="print-brokers-pdf-btn">طباعة PDF</button>
+                </div>
+                <div id="b-list"></div>
+            </div>
+        </div>`;
+
+    draw();
+
+    // Attach Event Listeners
+    document.getElementById('add-broker-btn').addEventListener('click', async () => {
+        const name = document.getElementById('b-name').value.trim();
+        const phone = document.getElementById('b-phone').value.trim();
+        const commission = parseNumber(document.getElementById('b-commission').value);
+        const notes = document.getElementById('b-notes').value.trim();
+        
+        if (!name || !phone) {
+            return alert('الرجاء إدخال الاسم والهاتف على الأقل.');
+        }
+
+        saveState();
+        const newBroker = {
+            id: uid('B'),
+            name,
+            phone,
+            commission,
+            notes
+        };
+        
+        state.brokers = state.brokers || [];
+        state.brokers.push(newBroker);
+        logAction('إضافة سمسار جديد', {
+            id: newBroker.id,
+            name: newBroker.name
+        });
+        
+        await persist();
+
+        // Clear form
+        document.getElementById('b-name').value = '';
+        document.getElementById('b-phone').value = '';
+        document.getElementById('b-commission').value = '';
+        document.getElementById('b-notes').value = '';
+        
+        draw();
+    });
+
+    // Global event delegation
+    view.addEventListener('click', (e) => {
+        if (e.target.matches('[data-del-id]')) {
+            const id = e.target.dataset.delId;
+            const collection = e.target.dataset.delColl;
+            delRow(collection, id);
+        }
+        
+        if (e.target.matches('[data-nav-id]')) {
+            e.preventDefault();
+            const id = e.target.dataset.navId;
+            const param = e.target.dataset.navParam;
+            nav(id, param);
+        }
+    });
+}
+
+function renderInstallments() {
+    view.innerHTML = `
+        <div class="panel">
+            <h3>إدارة الأقساط</h3>
+            <p>سيتم إضافة إدارة الأقساط قريباً.</p>
+        </div>
+    `;
+}
+
+function renderVouchers() {
+    view.innerHTML = `
+        <div class="panel">
+            <h3>إدارة السندات</h3>
+            <p>سيتم إضافة إدارة السندات قريباً.</p>
+        </div>
+    `;
+}
+
+function renderPartners() {
+    let sort = { idx: 0, dir: 'asc' };
+
+    function draw() {
+        const query = (document.getElementById('p-q')?.value || '').trim().toLowerCase();
+        let list = state.partners?.slice() || [];
+        
+        if (query) {
+            list = list.filter(partner => {
+                const searchable = `${partner.name || ''} ${partner.phone || ''} ${partner.share || ''}`.toLowerCase();
+                return searchable.includes(query);
+            });
+        }
+        
+        list.sort((a, b) => {
+            const colsA = [a.name || '', a.phone || '', a.share || ''];
+            const colsB = [b.name || '', b.phone || '', b.share || ''];
+            return (colsA[sort.idx] + '').localeCompare(colsB[sort.idx] + '') * (sort.dir === 'asc' ? 1 : -1);
+        });
+        
+        const rows = list.map(partner => [
+            `<a href="#" data-nav-id="partner-details" data-nav-param="${partner.id}">${partner.name || ''}</a>`,
+            partner.phone || '',
+            partner.share || '',
+            `<button class="btn secondary" data-del-coll="partners" data-del-id="${partner.id}">حذف</button>`
+        ]);
+        
+        document.getElementById('p-list').innerHTML = table(
+            ['الاسم', 'الهاتف', 'الحصة', ''],
+            rows,
+            sort,
+            (newSort) => {
+                sort = newSort;
+                draw();
+            }
+        );
+    }
+
+    view.innerHTML = `
+        <div class="grid grid-2">
+            <div class="card">
+                <h3>إضافة شريك</h3>
+                <input class="input" id="p-name" placeholder="اسم الشريك" style="margin-bottom:10px;">
+                <input class="input" id="p-phone" placeholder="الهاتف" style="margin-bottom:10px;">
+                <input class="input" id="p-share" placeholder="نسبة الحصة %" style="margin-bottom:10px;">
+                <textarea class="input" id="p-notes" placeholder="ملاحظات" style="margin-bottom:10px;" rows="2"></textarea>
+                <button class="btn" id="add-partner-btn">حفظ</button>
+            </div>
+            <div class="card">
+                <h3>الشركاء</h3>
+                <div class="tools">
+                    <input class="input" id="p-q" placeholder="بحث..." oninput="draw()">
+                    <button class="btn secondary" id="export-partners-csv-btn">CSV</button>
+                    <button class="btn" id="print-partners-pdf-btn">طباعة PDF</button>
+                </div>
+                <div id="p-list"></div>
+            </div>
+        </div>`;
+
+    draw();
+
+    // Attach Event Listeners
+    document.getElementById('add-partner-btn').addEventListener('click', async () => {
+        const name = document.getElementById('p-name').value.trim();
+        const phone = document.getElementById('p-phone').value.trim();
+        const share = parseNumber(document.getElementById('p-share').value);
+        const notes = document.getElementById('p-notes').value.trim();
+        
+        if (!name || !phone) {
+            return alert('الرجاء إدخال الاسم والهاتف على الأقل.');
+        }
+
+        saveState();
+        const newPartner = {
+            id: uid('P'),
+            name,
+            phone,
+            share,
+            notes
+        };
+        
+        state.partners = state.partners || [];
+        state.partners.push(newPartner);
+        logAction('إضافة شريك جديد', {
+            id: newPartner.id,
+            name: newPartner.name
+        });
+        
+        await persist();
+
+        // Clear form
+        document.getElementById('p-name').value = '';
+        document.getElementById('p-phone').value = '';
+        document.getElementById('p-share').value = '';
+        document.getElementById('p-notes').value = '';
+        
+        draw();
+    });
+
+    // Global event delegation
+    view.addEventListener('click', (e) => {
+        if (e.target.matches('[data-del-id]')) {
+            const id = e.target.dataset.delId;
+            const collection = e.target.dataset.delColl;
+            delRow(collection, id);
+        }
+        
+        if (e.target.matches('[data-nav-id]')) {
+            e.preventDefault();
+            const id = e.target.dataset.navId;
+            const param = e.target.dataset.navParam;
+            nav(id, param);
+        }
+    });
+}
+
+function renderTreasury() {
+    view.innerHTML = `
+        <div class="panel">
+            <h3>إدارة الخزينة</h3>
+            <p>سيتم إضافة إدارة الخزينة قريباً.</p>
+        </div>
+    `;
+}
+
+function renderReports() {
+    view.innerHTML = `
+        <div class="panel">
+            <h3>التقارير</h3>
+            <p>سيتم إضافة التقارير قريباً.</p>
+        </div>
+    `;
+}
+
+function renderPartnerDebts() {
+    view.innerHTML = `
+        <div class="panel">
+            <h3>ديون الشركاء</h3>
+            <p>سيتم إضافة ديون الشركاء قريباً.</p>
+        </div>
+    `;
+}
+
+function renderAuditLog() {
+    let sort = { idx: 0, dir: 'desc' };
+
+    function draw() {
+        let list = state.auditLog?.slice() || [];
+        
+        list.sort((a, b) => {
+            const colsA = [a.timestamp || '', a.description || ''];
+            const colsB = [b.timestamp || '', b.description || ''];
+            return (colsA[sort.idx] + '').localeCompare(colsB[sort.idx] + '') * (sort.dir === 'asc' ? 1 : -1);
+        });
+        
+        const rows = list.map(log => [
+            new Date(log.timestamp).toLocaleString('ar-EG'),
+            log.description,
+            JSON.stringify(log.details || {})
+        ]);
+        
+        document.getElementById('audit-list').innerHTML = table(
+            ['التاريخ', 'الوصف', 'التفاصيل'],
+            rows,
+            sort,
+            (newSort) => {
+                sort = newSort;
+                draw();
+            }
+        );
+    }
+
+    view.innerHTML = `
+        <div class="card">
+            <h3>سجل التغييرات</h3>
+            <div class="tools">
+                <button class="btn secondary" id="clear-audit-btn">مسح السجل</button>
+                <button class="btn secondary" id="export-audit-csv-btn">CSV</button>
+            </div>
+            <div id="audit-list"></div>
+        </div>`;
+
+    draw();
+
+    // Attach Event Listeners
+    document.getElementById('clear-audit-btn').addEventListener('click', async () => {
+        if (confirm('هل أنت متأكد من مسح سجل التغييرات؟')) {
+            saveState();
+            state.auditLog = [];
+            await persist();
+            draw();
+        }
+    });
+}
+
+function renderBackup() {
+    view.innerHTML = `
+        <div class="grid grid-2">
+            <div class="card">
+                <h3>تصدير البيانات</h3>
+                <p>قم بتحميل نسخة احتياطية من جميع البيانات.</p>
+                <button class="btn" id="export-data-btn">تصدير البيانات</button>
+            </div>
+            <div class="card">
+                <h3>استيراد البيانات</h3>
+                <p>قم باستيراد بيانات من ملف JSON.</p>
+                <input type="file" id="import-file" accept=".json" style="margin-bottom:10px;">
+                <button class="btn" id="import-data-btn">استيراد البيانات</button>
+            </div>
+        </div>
+    `;
+
+    // Attach Event Listeners
+    document.getElementById('export-data-btn').addEventListener('click', async () => {
+        try {
+            const data = await exportAllData();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `estate_backup_${new Date().toISOString().slice(0, 10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (error) {
+            alert('حدث خطأ أثناء تصدير البيانات: ' + error.message);
+        }
+    });
+
+    document.getElementById('import-data-btn').addEventListener('click', async () => {
+        const file = document.getElementById('import-file').files[0];
+        if (!file) {
+            return alert('الرجاء اختيار ملف للاستيراد.');
+        }
+
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            
+            if (confirm('سيتم استبدال جميع البيانات الحالية. هل أنت متأكد؟')) {
+                saveState();
+                await importData(data);
+                alert('تم استيراد البيانات بنجاح.');
+                location.reload();
+            }
+        } catch (error) {
+            alert('حدث خطأ أثناء استيراد البيانات: ' + error.message);
+        }
+    });
+}
+
+// Detail view functions
+function renderUnitDetails(unitId) {
+    const unit = unitById(unitId);
+    if (!unit) {
+        nav('units');
+        return;
+    }
+
+    view.innerHTML = `
+        <div class="panel">
+            <h3>تفاصيل الوحدة: ${unit.name}</h3>
+            <div class="grid grid-2">
+                <div>
+                    <p><strong>الكود:</strong> ${unit.code}</p>
+                    <p><strong>العمارة:</strong> ${unit.building}</p>
+                    <p><strong>الدور:</strong> ${unit.floor}</p>
+                </div>
+                <div>
+                    <p><strong>الملاحظات:</strong> ${unit.notes}</p>
+                </div>
+            </div>
+            <button class="btn secondary" onclick="nav('units')">العودة للوحدات</button>
+        </div>
+    `;
+}
+
+function renderPartnerGroupDetails(groupId) {
+    view.innerHTML = `
+        <div class="panel">
+            <h3>تفاصيل مجموعة الشركاء</h3>
+            <p>سيتم إضافة تفاصيل مجموعة الشركاء قريباً.</p>
+            <button class="btn secondary" onclick="nav('partners')">العودة للشركاء</button>
+        </div>
+    `;
+}
+
+function renderBrokerDetails(brokerId) {
+    const broker = brokerById(brokerId);
+    if (!broker) {
+        nav('brokers');
+        return;
+    }
+
+    view.innerHTML = `
+        <div class="panel">
+            <h3>تفاصيل السمسار: ${broker.name}</h3>
+            <div class="grid grid-2">
+                <div>
+                    <p><strong>الهاتف:</strong> ${broker.phone}</p>
+                    <p><strong>العمولة:</strong> ${broker.commission}%</p>
+                </div>
+                <div>
+                    <p><strong>الملاحظات:</strong> ${broker.notes}</p>
+                </div>
+            </div>
+            <button class="btn secondary" onclick="nav('brokers')">العودة للسماسرة</button>
+        </div>
+    `;
+}
+
+function renderPartnerDetails(partnerId) {
+    const partner = partnerById(partnerId);
+    if (!partner) {
+        nav('partners');
+        return;
+    }
+
+    view.innerHTML = `
+        <div class="panel">
+            <h3>تفاصيل الشريك: ${partner.name}</h3>
+            <div class="grid grid-2">
+                <div>
+                    <p><strong>الهاتف:</strong> ${partner.phone}</p>
+                    <p><strong>الحصة:</strong> ${partner.share}%</p>
+                </div>
+                <div>
+                    <p><strong>الملاحظات:</strong> ${partner.notes}</p>
+                </div>
+            </div>
+            <button class="btn secondary" onclick="nav('partners')">العودة للشركاء</button>
+        </div>
+    `;
+}
+
+function renderCustomerDetails(customerId) {
+    const customer = custById(customerId);
+    if (!customer) {
+        nav('customers');
+        return;
+    }
+
+    view.innerHTML = `
+        <div class="panel">
+            <h3>تفاصيل العميل: ${customer.name}</h3>
+            <div class="grid grid-2">
+                <div>
+                    <p><strong>الهاتف:</strong> ${customer.phone}</p>
+                    <p><strong>الرقم القومي:</strong> ${customer.nationalId}</p>
+                    <p><strong>العنوان:</strong> ${customer.address}</p>
+                </div>
+                <div>
+                    <p><strong>الحالة:</strong> ${customer.status}</p>
+                    <p><strong>الملاحظات:</strong> ${customer.notes}</p>
+                </div>
+            </div>
+            <button class="btn secondary" onclick="nav('customers')">العودة للعملاء</button>
+        </div>
+    `;
+}
+
+function renderUnitEdit(unitId) {
+    const unit = unitById(unitId);
+    if (!unit) {
+        nav('units');
+        return;
+    }
+
+    view.innerHTML = `
+        <div class="panel">
+            <h3>تعديل الوحدة: ${unit.name}</h3>
+            <div class="grid grid-2" style="gap: 10px;">
+                <input class="input" id="edit-u-name" placeholder="اسم الوحدة" value="${unit.name || ''}">
+                <input class="input" id="edit-u-code" placeholder="كود الوحدة" value="${unit.code || ''}">
+                <input class="input" id="edit-u-building" placeholder="رقم العمارة" value="${unit.building || ''}">
+                <input class="input" id="edit-u-floor" placeholder="رقم الدور" value="${unit.floor || ''}">
+            </div>
+            <textarea class="input" id="edit-u-notes" placeholder="ملاحظات" style="margin-top:10px;" rows="2">${unit.notes || ''}</textarea>
+            <div class="tools" style="margin-top:10px;">
+                <button class="btn" id="save-unit-edit-btn">حفظ التغييرات</button>
+                <button class="btn secondary" onclick="nav('units')">إلغاء</button>
+            </div>
+        </div>
+    `;
+
+    // Attach Event Listeners
+    document.getElementById('save-unit-edit-btn').addEventListener('click', async () => {
+        const name = document.getElementById('edit-u-name').value.trim();
+        const code = document.getElementById('edit-u-code').value.trim();
+        const building = document.getElementById('edit-u-building').value.trim();
+        const floor = document.getElementById('edit-u-floor').value.trim();
+        const notes = document.getElementById('edit-u-notes').value.trim();
+        
+        if (!name || !code) {
+            return alert('الرجاء إدخال اسم الوحدة والكود على الأقل.');
+        }
+
+        saveState();
+        unit.name = name;
+        unit.code = code;
+        unit.building = building;
+        unit.floor = floor;
+        unit.notes = notes;
+        
+        logAction('تعديل الوحدة', {
+            id: unit.id,
+            name: unit.name
+        });
+        
+        await persist();
+        nav('units');
+    });
+}
