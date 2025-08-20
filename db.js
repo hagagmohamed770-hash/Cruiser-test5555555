@@ -80,7 +80,10 @@ function getAll(storeName) {
                     reject(event.target.error);
                 };
             })
-            .catch(reject);
+            .catch((error) => {
+                console.error(`Database error in getAll for ${storeName}:`, error);
+                reject(error);
+            });
     });
 }
 
@@ -107,7 +110,10 @@ function put(storeName, item) {
                     reject(event.target.error);
                 };
             })
-            .catch(reject);
+            .catch((error) => {
+                console.error(`Database error in put for ${storeName}:`, error);
+                reject(error);
+            });
     });
 }
 
@@ -144,7 +150,10 @@ function bulkPut(storeName, items) {
                         reject(err);
                     });
             })
-            .catch(reject);
+            .catch((error) => {
+                console.error(`Database error in bulkPut for ${storeName}:`, error);
+                reject(error);
+            });
     });
 }
 
@@ -171,7 +180,10 @@ function deleteItem(storeName, key) {
                     reject(event.target.error);
                 };
             })
-            .catch(reject);
+            .catch((error) => {
+                console.error(`Database error in deleteItem for ${storeName}:`, error);
+                reject(error);
+            });
     });
 }
 
@@ -198,7 +210,10 @@ function get(storeName, key) {
                     reject(event.target.error);
                 };
             })
-            .catch(reject);
+            .catch((error) => {
+                console.error(`Database error in get for ${storeName}:`, error);
+                reject(error);
+            });
     });
 }
 
@@ -225,7 +240,10 @@ async function getKeyVal(key) {
                     reject(event.target.error);
                 };
             })
-            .catch(reject);
+            .catch((error) => {
+                console.error(`Database error in getKeyVal for key ${key}:`, error);
+                reject(error);
+            });
     });
 }
 
@@ -263,7 +281,10 @@ function clearStore(storeName) {
                     reject(event.target.error);
                 };
             })
-            .catch(reject);
+            .catch((error) => {
+                console.error(`Database error in clearStore for ${storeName}:`, error);
+                reject(error);
+            });
     });
 }
 
