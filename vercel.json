@@ -18,7 +18,12 @@
   ],
   "env": {
     "NODE_ENV": "production",
-    "PORT": "3000"
+    "PORT": "3000",
+    "JWT_SECRET": "vercel-secret-key-2025",
+    "COMPANY_NAME": "شركة إدارة الاستثمار العقاري",
+    "CURRENCY": "ريال",
+    "LANGUAGE": "ar",
+    "TIMEZONE": "Asia/Riyadh"
   },
   "functions": {
     "server.js": {
