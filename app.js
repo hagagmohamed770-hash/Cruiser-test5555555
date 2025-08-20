@@ -32,12 +32,21 @@ function hideLoadingScreen() {
     }
 }
 
+// Force hide loading screen after a maximum time
+function forceHideLoadingScreen() {
+    setTimeout(() => {
+        hideLoadingScreen();
+        console.log('Loading screen force hidden');
+    }, 5000); // 5 seconds maximum
+}
+
 /* ===== CORE APP INITIALIZATION ===== */
 document.addEventListener('DOMContentLoaded', initializeApp);
 
 async function initializeApp() {
     // Show loading screen
     showLoadingScreen();
+    forceHideLoadingScreen(); // Force hide after 5 seconds maximum
 
     // Register service worker for PWA functionality
     if ('serviceWorker' in navigator) {
@@ -514,20 +523,29 @@ routes.forEach(route => {
 });
 
 function nav(id, param = null) {
-    currentView = id;
-    currentParam = param;
-    
-    const route = routes.find(x => x.id === id);
-    if (!route) return;
-    
-    // Update active navigation
-    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
-    const navItem = document.querySelector(`[data-nav="${id}"]`);
-    if (navItem) navItem.classList.add('active');
-    
-    // Render the view
-    route.render(param);
-    htmx.process(view);
+    try {
+        currentView = id;
+        currentParam = param;
+        
+        const route = routes.find(x => x.id === id);
+        if (!route) {
+            console.error('Route not found:', id);
+            return;
+        }
+        
+        // Update active navigation
+        document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        const navItem = document.querySelector(`[data-nav="${id}"]`);
+        if (navItem) navItem.classList.add('active');
+        
+        // Render the view
+        route.render(param);
+        htmx.process(view);
+        
+    } catch (error) {
+        console.error('Error in navigation:', error);
+        showNotification('حدث خطأ في التنقل', 'danger');
+    }
 }
 
 function updatePageHeader(title, subtitle, icon) {
@@ -850,10 +868,11 @@ function renderCustomers() {
 
 // Add missing render functions
 function renderDash() {
-    const totalCustomers = state.customers?.length || 0;
-    const totalUnits = state.units?.length || 0;
-    const totalContracts = state.contracts?.length || 0;
-    const totalPartners = state.partners?.length || 0;
+    try {
+        const totalCustomers = state.customers?.length || 0;
+        const totalUnits = state.units?.length || 0;
+        const totalContracts = state.contracts?.length || 0;
+        const totalPartners = state.partners?.length || 0;
     
     // Calculate some statistics
     const activeContracts = state.contracts?.filter(c => c.status === 'نشط').length || 0;
@@ -987,6 +1006,11 @@ function renderDash() {
     
     // Update page header
     updatePageHeader('لوحة التحكم', 'نظرة عامة على النظام', '📊');
+    
+    } catch (error) {
+        console.error('Error in renderDash:', error);
+        showNotification('حدث خطأ في عرض لوحة التحكم', 'danger');
+    }
 }
 
 function renderOldDash() {
