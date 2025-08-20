@@ -21,6 +21,7 @@ let currentParam = null;
 document.addEventListener('DOMContentLoaded', initializeApp);
 
 async function initializeApp() {
+    console.log('Starting application initialization...');
 
     // Register service worker for PWA functionality
     if ('serviceWorker' in navigator) {
@@ -33,6 +34,7 @@ async function initializeApp() {
 
     // Initialize state with default structure
     initializeDefaultState();
+    console.log('Default state initialized');
 
     try {
         await openDB();
@@ -73,11 +75,17 @@ async function initializeApp() {
     }
 
     // Setup UI and global event listeners
+    console.log('Setting up UI...');
     setupUI();
+    console.log('UI setup complete');
+    
     checkLock();
     saveState();
     updateUndoRedoButtons();
+    
+    console.log('Navigating to dashboard...');
     nav('dash');
+    console.log('Application initialization complete!');
 
 
 }
@@ -107,13 +115,20 @@ function mergeLoadedState(loadedState) {
 
 function setupUI() {
     try {
+        console.log('Applying settings...');
         applySettings();
+        console.log('Settings applied');
         
         // Setup navigation event listeners
-        document.querySelectorAll('.nav-item').forEach(item => {
+        console.log('Setting up navigation...');
+        const navItems = document.querySelectorAll('.nav-item');
+        console.log('Found nav items:', navItems.length);
+        
+        navItems.forEach(item => {
             item.addEventListener('click', (e) => {
                 e.preventDefault();
                 const navId = item.dataset.nav;
+                console.log('Navigation clicked:', navId);
                 if (navId) {
                     nav(navId);
                 }
@@ -492,12 +507,15 @@ routes.forEach(route => {
 
 function nav(id, param = null) {
     try {
+        console.log('Navigating to:', id, 'with param:', param);
+        
         currentView = id;
         currentParam = param;
         
         const route = routes.find(x => x.id === id);
         if (!route) {
             console.error('Route not found:', id);
+            showNotification('الصفحة غير موجودة', 'danger');
             return;
         }
         
@@ -507,12 +525,18 @@ function nav(id, param = null) {
         if (navItem) navItem.classList.add('active');
         
         // Render the view
+        console.log('Rendering view for:', id);
         route.render(param);
-        htmx.process(view);
+        
+        if (typeof htmx !== 'undefined' && htmx.process) {
+            htmx.process(view);
+        }
+        
+        console.log('Navigation complete');
         
     } catch (error) {
         console.error('Error in navigation:', error);
-        showNotification('حدث خطأ في التنقل', 'danger');
+        showNotification('حدث خطأ في التنقل: ' + error.message, 'danger');
     }
 }
 
@@ -837,6 +861,8 @@ function renderCustomers() {
 // Add missing render functions
 function renderDash() {
     try {
+        console.log('Rendering dashboard...');
+        
         const totalCustomers = state.customers?.length || 0;
         const totalUnits = state.units?.length || 0;
         const totalContracts = state.contracts?.length || 0;
@@ -975,9 +1001,11 @@ function renderDash() {
     // Update page header
     updatePageHeader('لوحة التحكم', 'نظرة عامة على النظام', '📊');
     
+    console.log('Dashboard rendered successfully');
+    
     } catch (error) {
         console.error('Error in renderDash:', error);
-        showNotification('حدث خطأ في عرض لوحة التحكم', 'danger');
+        showNotification('حدث خطأ في عرض لوحة التحكم: ' + error.message, 'danger');
     }
 }
 
