@@ -1,12 +1,12 @@
 /*
-    Real Estate Management App - Simplified Version
+    Real Estate Management App - Complete Version
     Author: Jules
     Date: 2025-08-19
-    Description: A simplified, robust version with proper error handling
+    Description: Complete real estate management system with all original features
 */
 
 /* ===== GLOBAL STATE & CONFIG ===== */
-const APPKEY = 'estate_pro_simple_v1';
+const APPKEY = 'estate_pro_complete_v1';
 let state = {};
 let historyStack = [];
 let historyIndex = -1;
@@ -41,6 +41,7 @@ function initializeDefaultState() {
         customers: [],
         units: [],
         partners: [],
+        unitPartners: [],
         contracts: [],
         installments: [],
         vouchers: [],
@@ -105,7 +106,10 @@ function setupOtherUI() {
         const themeSelector = document.getElementById('theme-selector');
         if (themeSelector) {
             themeSelector.addEventListener('change', function() {
+                state.settings.theme = this.value;
                 applySettings();
+                saveState();
+                showNotification('تم تغيير المظهر بنجاح!', 'success');
             });
         }
         
@@ -113,8 +117,36 @@ function setupOtherUI() {
         const fontSelector = document.getElementById('font-selector');
         if (fontSelector) {
             fontSelector.addEventListener('change', function() {
+                const fontSizes = { small: 14, default: 16, large: 18 };
+                state.settings.font = fontSizes[this.value] || 16;
                 applySettings();
+                saveState();
+                showNotification('تم تغيير حجم الخط بنجاح!', 'success');
             });
+        }
+        
+        // Lock button
+        const lockBtn = document.getElementById('lock-btn');
+        if (lockBtn) {
+            lockBtn.addEventListener('click', function() {
+                const pass = prompt('ضع كلمة مرور أو اتركها فارغة لإلغاء القفل', '');
+                state.locked = !!pass;
+                state.settings.pass = pass || null;
+                saveState();
+                showNotification(state.locked ? 'تم تفعيل القفل' : 'تم إلغاء القفل', 'success');
+                checkLock();
+            });
+        }
+        
+        // Undo/Redo buttons
+        const undoBtn = document.getElementById('undo-btn');
+        const redoBtn = document.getElementById('redo-btn');
+        
+        if (undoBtn) {
+            undoBtn.addEventListener('click', undo);
+        }
+        if (redoBtn) {
+            redoBtn.addEventListener('click', redo);
         }
         
         // Mobile menu toggle
@@ -275,6 +307,7 @@ function renderView(id, param) {
     }
 }
 
+/* ===== DASHBOARD ===== */
 function renderDash() {
     try {
         console.log('Rendering dashboard...');
@@ -283,6 +316,10 @@ function renderDash() {
         const totalUnits = state.units ? state.units.length : 0;
         const totalContracts = state.contracts ? state.contracts.length : 0;
         const totalPartners = state.partners ? state.partners.length : 0;
+        
+        // Calculate some statistics
+        const activeContracts = state.contracts ? state.contracts.filter(c => c.status === 'نشط').length : 0;
+        const totalRevenue = state.contracts ? state.contracts.reduce((sum, c) => sum + (c.price || 0), 0) : 0;
         
         const view = document.getElementById('view');
         if (!view) return;
@@ -319,31 +356,51 @@ function renderDash() {
                 </div>
             </div>
             
-            <div class="quick-actions">
-                <h3>إجراءات سريعة</h3>
-                <div class="action-buttons">
-                    <button class="btn" onclick="nav('customers')">
-                        <span class="nav-icon">👥</span>
-                        إضافة عميل
-                    </button>
-                    <button class="btn" onclick="nav('units')">
-                        <span class="nav-icon">🏠</span>
-                        إضافة وحدة
-                    </button>
-                    <button class="btn" onclick="nav('contracts')">
-                        <span class="nav-icon">📋</span>
-                        إضافة عقد
-                    </button>
-                    <button class="btn" onclick="nav('partners')">
-                        <span class="nav-icon">👨‍💼</span>
-                        إضافة شريك
-                    </button>
+            <div class="grid grid-2">
+                <div class="card">
+                    <h3>📊 الإحصائيات السريعة</h3>
+                    <div class="mb-4">
+                        <div class="flex justify-between items-center mb-4">
+                            <span>إجمالي الإيرادات</span>
+                            <span class="font-bold text-success">${totalRevenue.toLocaleString()} ج.م</span>
+                        </div>
+                        <div class="flex justify-between items-center mb-4">
+                            <span>العقود النشطة</span>
+                            <span class="font-bold">${activeContracts}</span>
+                        </div>
+                        <div class="flex justify-between items-center mb-4">
+                            <span>الوحدات المتاحة</span>
+                            <span class="font-bold">${totalUnits - (state.contracts ? state.contracts.length : 0)}</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>🎯 الإجراءات السريعة</h3>
+                    <div class="grid grid-2 gap-4">
+                        <button class="btn btn-primary" onclick="nav('customers')">
+                            <span class="nav-icon">➕</span>
+                            إضافة عميل
+                        </button>
+                        <button class="btn btn-success" onclick="nav('units')">
+                            <span class="nav-icon">🏠</span>
+                            إضافة وحدة
+                        </button>
+                        <button class="btn btn-warning" onclick="nav('contracts')">
+                            <span class="nav-icon">📋</span>
+                            إنشاء عقد
+                        </button>
+                        <button class="btn btn-info" onclick="nav('reports')">
+                            <span class="nav-icon">📈</span>
+                            عرض التقارير
+                        </button>
+                    </div>
                 </div>
             </div>
             
             <div class="welcome-message">
                 <h2>مرحباً بك في نظام إدارة الاستثمار العقاري</h2>
-                <p>استخدم القائمة الجانبية للتنقل بين الأقسام المختلفة</p>
+                <p>نظام متكامل لإدارة جميع جوانب الاستثمار العقاري. يمكنك إدارة العملاء، الوحدات، العقود، والشركاء بسهولة وكفاءة.</p>
             </div>
         `;
         
@@ -358,20 +415,48 @@ function renderDash() {
     }
 }
 
+/* ===== CUSTOMERS ===== */
 function renderCustomers() {
     try {
         const view = document.getElementById('view');
         if (!view) return;
         
         view.innerHTML = `
-            <div class="card">
-                <h3>العملاء</h3>
-                <p>سيتم إضافة صفحة العملاء قريباً</p>
-                <button class="btn secondary" onclick="nav('dash')">العودة للوحة التحكم</button>
+            <div class="grid grid-2">
+                <div class="card">
+                    <h3>إضافة عميل</h3>
+                    <div class="grid grid-2" style="gap: 10px;">
+                        <input class="input" id="c-name" placeholder="اسم العميل">
+                        <input class="input" id="c-phone" placeholder="الهاتف">
+                        <input class="input" id="c-nationalId" placeholder="الرقم القومي">
+                        <input class="input" id="c-address" placeholder="العنوان">
+                    </div>
+                    <select class="select" id="c-status" style="margin-top:10px;">
+                        <option value="نشط">نشط</option>
+                        <option value="موقوف">موقوف</option>
+                    </select>
+                    <textarea class="input" id="c-notes" placeholder="ملاحظات" style="margin-top:10px;" rows="2"></textarea>
+                    <button class="btn" id="add-customer-btn" style="margin-top:10px;">حفظ</button>
+                </div>
+                <div class="card">
+                    <h3>العملاء</h3>
+                    <div class="tools">
+                        <input class="input" id="c-q" placeholder="بحث..." oninput="drawCustomers()">
+                        <button class="btn btn-secondary" id="export-csv-btn">CSV</button>
+                        <button class="btn" id="print-pdf-btn">طباعة PDF</button>
+                    </div>
+                    <div id="c-list"></div>
+                </div>
             </div>
         `;
         
         updatePageHeader('العملاء', 'إدارة بيانات العملاء', '👥');
+        
+        // Draw customers list
+        drawCustomers();
+        
+        // Attach event listeners
+        document.getElementById('add-customer-btn').addEventListener('click', addCustomer);
         
     } catch (error) {
         console.error('Error in renderCustomers:', error);
@@ -379,20 +464,150 @@ function renderCustomers() {
     }
 }
 
+function drawCustomers() {
+    try {
+        const query = (document.getElementById('c-q')?.value || '').trim().toLowerCase();
+        let list = state.customers ? state.customers.slice() : [];
+        
+        if (query) {
+            list = list.filter(customer => {
+                const searchable = `${customer.name || ''} ${customer.phone || ''} ${customer.nationalId || ''} ${customer.address || ''} ${customer.status || ''}`.toLowerCase();
+                return searchable.includes(query);
+            });
+        }
+        
+        const rows = list.map(customer => [
+            `<a href="#" onclick="nav('customer-details', '${customer.id}')">${customer.name || ''}</a>`,
+            customer.phone || '',
+            customer.nationalId || '',
+            customer.status || 'نشط',
+            `<button class="btn btn-secondary btn-sm" onclick="deleteCustomer('${customer.id}')">حذف</button>`
+        ]);
+        
+        const listElement = document.getElementById('c-list');
+        if (listElement) {
+            listElement.innerHTML = table(
+                ['الاسم', 'الهاتف', 'الرقم القومي', 'الحالة', ''],
+                rows
+            );
+        }
+    } catch (error) {
+        console.error('Error in drawCustomers:', error);
+    }
+}
+
+function addCustomer() {
+    try {
+        const name = document.getElementById('c-name').value.trim();
+        const phone = document.getElementById('c-phone').value.trim();
+        const nationalId = document.getElementById('c-nationalId').value.trim();
+        const address = document.getElementById('c-address').value.trim();
+        const status = document.getElementById('c-status').value;
+        const notes = document.getElementById('c-notes').value.trim();
+        
+        if (!name || !phone) {
+            return alert('الرجاء إدخال الاسم ورقم الهاتف على الأقل.');
+        }
+        
+        if (state.customers.some(c => c.name.toLowerCase() === name.toLowerCase())) {
+            return alert('عميل بنفس الاسم موجود بالفعل.');
+        }
+
+        saveState();
+        const newCustomer = {
+            id: generateId('C'),
+            name,
+            phone,
+            nationalId,
+            address,
+            status,
+            notes
+        };
+        
+        state.customers.push(newCustomer);
+        logAction('إضافة عميل جديد', {
+            id: newCustomer.id,
+            name: newCustomer.name
+        });
+        
+        saveState();
+
+        // Clear form
+        document.getElementById('c-name').value = '';
+        document.getElementById('c-phone').value = '';
+        document.getElementById('c-nationalId').value = '';
+        document.getElementById('c-address').value = '';
+        document.getElementById('c-notes').value = '';
+        
+        drawCustomers();
+        showNotification('تم إضافة العميل بنجاح', 'success');
+        
+    } catch (error) {
+        console.error('Error in addCustomer:', error);
+        showNotification('حدث خطأ في إضافة العميل', 'danger');
+    }
+}
+
+function deleteCustomer(id) {
+    try {
+        const customer = state.customers.find(c => c.id === id);
+        if (!customer) return;
+        
+        if (confirm(`هل أنت متأكد من حذف العميل "${customer.name}"؟`)) {
+            saveState();
+            state.customers = state.customers.filter(c => c.id !== id);
+            logAction('حذف عميل', {
+                id: customer.id,
+                name: customer.name
+            });
+            saveState();
+            drawCustomers();
+            showNotification('تم حذف العميل بنجاح', 'success');
+        }
+    } catch (error) {
+        console.error('Error in deleteCustomer:', error);
+        showNotification('حدث خطأ في حذف العميل', 'danger');
+    }
+}
+
+/* ===== UNITS ===== */
 function renderUnits() {
     try {
         const view = document.getElementById('view');
         if (!view) return;
         
         view.innerHTML = `
-            <div class="card">
-                <h3>الوحدات</h3>
-                <p>سيتم إضافة صفحة الوحدات قريباً</p>
-                <button class="btn secondary" onclick="nav('dash')">العودة للوحة التحكم</button>
+            <div class="grid grid-2">
+                <div class="card">
+                    <h3>إضافة وحدة</h3>
+                    <div class="grid grid-2" style="gap: 10px;">
+                        <input class="input" id="u-name" placeholder="اسم الوحدة">
+                        <input class="input" id="u-code" placeholder="كود الوحدة">
+                        <input class="input" id="u-building" placeholder="رقم العمارة">
+                        <input class="input" id="u-floor" placeholder="رقم الدور">
+                    </div>
+                    <textarea class="input" id="u-notes" placeholder="ملاحظات" style="margin-top:10px;" rows="2"></textarea>
+                    <button class="btn" id="add-unit-btn" style="margin-top:10px;">حفظ</button>
+                </div>
+                <div class="card">
+                    <h3>الوحدات</h3>
+                    <div class="tools">
+                        <input class="input" id="u-q" placeholder="بحث..." oninput="drawUnits()">
+                        <button class="btn btn-secondary" id="export-units-csv-btn">CSV</button>
+                        <button class="btn" id="print-units-pdf-btn">طباعة PDF</button>
+                    </div>
+                    <div id="u-list"></div>
+                </div>
             </div>
         `;
         
         updatePageHeader('الوحدات', 'إدارة الوحدات العقارية', '🏠');
+        
+        // Draw units list
+        drawUnits();
+        
+        // Attach event listeners
+        document.getElementById('add-unit-btn').addEventListener('click', addUnit);
         
     } catch (error) {
         console.error('Error in renderUnits:', error);
@@ -400,20 +615,151 @@ function renderUnits() {
     }
 }
 
+function drawUnits() {
+    try {
+        const query = (document.getElementById('u-q')?.value || '').trim().toLowerCase();
+        let list = state.units ? state.units.slice() : [];
+        
+        if (query) {
+            list = list.filter(unit => {
+                const searchable = `${unit.name || ''} ${unit.code || ''} ${unit.building || ''} ${unit.floor || ''}`.toLowerCase();
+                return searchable.includes(query);
+            });
+        }
+        
+        const rows = list.map(unit => [
+            `<a href="#" onclick="nav('unit-details', '${unit.id}')">${unit.name || ''}</a>`,
+            unit.code || '',
+            unit.building || '',
+            unit.floor || '',
+            `<button class="btn btn-secondary btn-sm" onclick="deleteUnit('${unit.id}')">حذف</button>`
+        ]);
+        
+        const listElement = document.getElementById('u-list');
+        if (listElement) {
+            listElement.innerHTML = table(
+                ['الاسم', 'الكود', 'العمارة', 'الدور', ''],
+                rows
+            );
+        }
+    } catch (error) {
+        console.error('Error in drawUnits:', error);
+    }
+}
+
+function addUnit() {
+    try {
+        const name = document.getElementById('u-name').value.trim();
+        const code = document.getElementById('u-code').value.trim();
+        const building = document.getElementById('u-building').value.trim();
+        const floor = document.getElementById('u-floor').value.trim();
+        const notes = document.getElementById('u-notes').value.trim();
+        
+        if (!name || !code) {
+            return alert('الرجاء إدخال اسم الوحدة والكود على الأقل.');
+        }
+
+        saveState();
+        const newUnit = {
+            id: generateId('U'),
+            name,
+            code,
+            building,
+            floor,
+            notes
+        };
+        
+        state.units.push(newUnit);
+        logAction('إضافة وحدة جديدة', {
+            id: newUnit.id,
+            name: newUnit.name
+        });
+        
+        saveState();
+
+        // Clear form
+        document.getElementById('u-name').value = '';
+        document.getElementById('u-code').value = '';
+        document.getElementById('u-building').value = '';
+        document.getElementById('u-floor').value = '';
+        document.getElementById('u-notes').value = '';
+        
+        drawUnits();
+        showNotification('تم إضافة الوحدة بنجاح', 'success');
+        
+    } catch (error) {
+        console.error('Error in addUnit:', error);
+        showNotification('حدث خطأ في إضافة الوحدة', 'danger');
+    }
+}
+
+function deleteUnit(id) {
+    try {
+        const unit = state.units.find(u => u.id === id);
+        if (!unit) return;
+        
+        if (confirm(`هل أنت متأكد من حذف الوحدة "${unit.name}"؟`)) {
+            saveState();
+            state.units = state.units.filter(u => u.id !== id);
+            logAction('حذف وحدة', {
+                id: unit.id,
+                name: unit.name
+            });
+            saveState();
+            drawUnits();
+            showNotification('تم حذف الوحدة بنجاح', 'success');
+        }
+    } catch (error) {
+        console.error('Error in deleteUnit:', error);
+        showNotification('حدث خطأ في حذف الوحدة', 'danger');
+    }
+}
+
+/* ===== CONTRACTS ===== */
 function renderContracts() {
     try {
         const view = document.getElementById('view');
         if (!view) return;
         
         view.innerHTML = `
-            <div class="card">
-                <h3>العقود</h3>
-                <p>سيتم إضافة صفحة العقود قريباً</p>
-                <button class="btn secondary" onclick="nav('dash')">العودة للوحة التحكم</button>
+            <div class="grid grid-2">
+                <div class="card">
+                    <h3>إنشاء عقد جديد</h3>
+                    <select class="select" id="co-customer" style="margin-bottom:10px;">
+                        <option value="">اختر العميل</option>
+                        ${(state.customers || []).map(c => `<option value="${c.id}">${c.name}</option>`).join('')}
+                    </select>
+                    <select class="select" id="co-unit" style="margin-bottom:10px;">
+                        <option value="">اختر الوحدة</option>
+                        ${(state.units || []).map(u => `<option value="${u.id}">${u.name}</option>`).join('')}
+                    </select>
+                    <select class="select" id="co-type" style="margin-bottom:10px;">
+                        <option value="بيع">بيع</option>
+                        <option value="إيجار">إيجار</option>
+                    </select>
+                    <input class="input" id="co-startDate" type="date" style="margin-bottom:10px;">
+                    <input class="input" id="co-price" placeholder="السعر" style="margin-bottom:10px;">
+                    <button class="btn" id="add-contract-btn">إنشاء العقد</button>
+                </div>
+                <div class="card">
+                    <h3>العقود</h3>
+                    <div class="tools">
+                        <input class="input" id="co-q" placeholder="بحث..." oninput="drawContracts()">
+                        <button class="btn btn-secondary" id="export-contracts-csv-btn">CSV</button>
+                        <button class="btn" id="print-contracts-pdf-btn">طباعة PDF</button>
+                    </div>
+                    <div id="co-list"></div>
+                </div>
             </div>
         `;
         
         updatePageHeader('العقود', 'إدارة العقود', '📋');
+        
+        // Draw contracts list
+        drawContracts();
+        
+        // Attach event listeners
+        document.getElementById('add-contract-btn').addEventListener('click', addContract);
         
     } catch (error) {
         console.error('Error in renderContracts:', error);
@@ -421,6 +767,107 @@ function renderContracts() {
     }
 }
 
+function drawContracts() {
+    try {
+        const query = (document.getElementById('co-q')?.value || '').trim().toLowerCase();
+        let list = state.contracts ? state.contracts.slice() : [];
+        
+        if (query) {
+            list = list.filter(contract => {
+                const customer = getCustomerById(contract.customerId);
+                const unit = getUnitById(contract.unitId);
+                const searchable = `${customer?.name || ''} ${unit?.name || ''} ${contract.type || ''}`.toLowerCase();
+                return searchable.includes(query);
+            });
+        }
+        
+        const rows = list.map(contract => {
+            const customer = getCustomerById(contract.customerId);
+            const unit = getUnitById(contract.unitId);
+            return [
+                `<a href="#" onclick="nav('contract-details', '${contract.id}')">${customer?.name || ''}</a>`,
+                unit?.name || '',
+                contract.type || '',
+                contract.startDate || '',
+                `<button class="btn btn-secondary btn-sm" onclick="deleteContract('${contract.id}')">حذف</button>`
+            ];
+        });
+        
+        const listElement = document.getElementById('co-list');
+        if (listElement) {
+            listElement.innerHTML = table(
+                ['العميل', 'الوحدة', 'النوع', 'تاريخ البداية', ''],
+                rows
+            );
+        }
+    } catch (error) {
+        console.error('Error in drawContracts:', error);
+    }
+}
+
+function addContract() {
+    try {
+        const customerId = document.getElementById('co-customer').value;
+        const unitId = document.getElementById('co-unit').value;
+        const type = document.getElementById('co-type').value;
+        const startDate = document.getElementById('co-startDate').value;
+        const price = parseNumber(document.getElementById('co-price').value);
+        
+        if (!customerId || !unitId || !startDate) {
+            return alert('الرجاء إدخال جميع البيانات المطلوبة.');
+        }
+
+        saveState();
+        const newContract = {
+            id: generateId('CO'),
+            customerId,
+            unitId,
+            type,
+            startDate,
+            price,
+            status: 'نشط',
+            createdAt: new Date().toISOString()
+        };
+        
+        state.contracts.push(newContract);
+        logAction('إنشاء عقد جديد', {
+            id: newContract.id,
+            customerId: newContract.customerId,
+            unitId: newContract.unitId
+        });
+        
+        saveState();
+        drawContracts();
+        showNotification('تم إنشاء العقد بنجاح', 'success');
+        
+    } catch (error) {
+        console.error('Error in addContract:', error);
+        showNotification('حدث خطأ في إنشاء العقد', 'danger');
+    }
+}
+
+function deleteContract(id) {
+    try {
+        const contract = state.contracts.find(c => c.id === id);
+        if (!contract) return;
+        
+        if (confirm('هل أنت متأكد من حذف هذا العقد؟')) {
+            saveState();
+            state.contracts = state.contracts.filter(c => c.id !== id);
+            logAction('حذف عقد', {
+                id: contract.id
+            });
+            saveState();
+            drawContracts();
+            showNotification('تم حذف العقد بنجاح', 'success');
+        }
+    } catch (error) {
+        console.error('Error in deleteContract:', error);
+        showNotification('حدث خطأ في حذف العقد', 'danger');
+    }
+}
+
+/* ===== OTHER SECTIONS ===== */
 function renderBrokers() {
     try {
         const view = document.getElementById('view');
@@ -430,7 +877,7 @@ function renderBrokers() {
             <div class="card">
                 <h3>السماسرة</h3>
                 <p>سيتم إضافة صفحة السماسرة قريباً</p>
-                <button class="btn secondary" onclick="nav('dash')">العودة للوحة التحكم</button>
+                <button class="btn btn-secondary" onclick="nav('dash')">العودة للوحة التحكم</button>
             </div>
         `;
         
@@ -451,7 +898,7 @@ function renderPartners() {
             <div class="card">
                 <h3>الشركاء</h3>
                 <p>سيتم إضافة صفحة الشركاء قريباً</p>
-                <button class="btn secondary" onclick="nav('dash')">العودة للوحة التحكم</button>
+                <button class="btn btn-secondary" onclick="nav('dash')">العودة للوحة التحكم</button>
             </div>
         `;
         
@@ -472,7 +919,7 @@ function renderInstallments() {
             <div class="card">
                 <h3>الأقساط</h3>
                 <p>سيتم إضافة صفحة الأقساط قريباً</p>
-                <button class="btn secondary" onclick="nav('dash')">العودة للوحة التحكم</button>
+                <button class="btn btn-secondary" onclick="nav('dash')">العودة للوحة التحكم</button>
             </div>
         `;
         
@@ -493,7 +940,7 @@ function renderVouchers() {
             <div class="card">
                 <h3>السندات</h3>
                 <p>سيتم إضافة صفحة السندات قريباً</p>
-                <button class="btn secondary" onclick="nav('dash')">العودة للوحة التحكم</button>
+                <button class="btn btn-secondary" onclick="nav('dash')">العودة للوحة التحكم</button>
             </div>
         `;
         
@@ -514,7 +961,7 @@ function renderTreasury() {
             <div class="card">
                 <h3>الخزينة</h3>
                 <p>سيتم إضافة صفحة الخزينة قريباً</p>
-                <button class="btn secondary" onclick="nav('dash')">العودة للوحة التحكم</button>
+                <button class="btn btn-secondary" onclick="nav('dash')">العودة للوحة التحكم</button>
             </div>
         `;
         
@@ -535,7 +982,7 @@ function renderReports() {
             <div class="card">
                 <h3>التقارير</h3>
                 <p>سيتم إضافة صفحة التقارير قريباً</p>
-                <button class="btn secondary" onclick="nav('dash')">العودة للوحة التحكم</button>
+                <button class="btn btn-secondary" onclick="nav('dash')">العودة للوحة التحكم</button>
             </div>
         `;
         
@@ -556,7 +1003,7 @@ function renderAuditLog() {
             <div class="card">
                 <h3>سجل التغييرات</h3>
                 <p>سيتم إضافة صفحة سجل التغييرات قريباً</p>
-                <button class="btn secondary" onclick="nav('dash')">العودة للوحة التحكم</button>
+                <button class="btn btn-secondary" onclick="nav('dash')">العودة للوحة التحكم</button>
             </div>
         `;
         
@@ -577,7 +1024,7 @@ function renderBackup() {
             <div class="card">
                 <h3>النسخ الاحتياطية</h3>
                 <p>سيتم إضافة صفحة النسخ الاحتياطية قريباً</p>
-                <button class="btn secondary" onclick="nav('dash')">العودة للوحة التحكم</button>
+                <button class="btn btn-secondary" onclick="nav('dash')">العودة للوحة التحكم</button>
             </div>
         `;
         
@@ -589,6 +1036,7 @@ function renderBackup() {
     }
 }
 
+/* ===== UTILITY FUNCTIONS ===== */
 function updatePageHeader(title, subtitle, icon) {
     try {
         const pageTitle = document.getElementById('page-title');
@@ -654,9 +1102,94 @@ function saveState() {
 }
 
 function checkLock() {
-    // Placeholder for lock functionality
+    if (state.locked) {
+        const password = prompt('اكتب كلمة المرور للدخول');
+        if (password !== state.settings.pass) {
+            alert('كلمة مرور غير صحيحة');
+            location.reload();
+        }
+    }
+}
+
+function logAction(description, details) {
+    try {
+        state.auditLog.push({
+            id: generateId('LOG'),
+            timestamp: new Date().toISOString(),
+            description,
+            details
+        });
+    } catch (error) {
+        console.error('Error logging action:', error);
+    }
+}
+
+function parseNumber(value) {
+    value = String(value || '').replace(/[^\d.]/g, '');
+    return Number(value || 0);
+}
+
+function getCustomerById(id) {
+    return state.customers ? state.customers.find(c => c.id === id) : null;
+}
+
+function getUnitById(id) {
+    return state.units ? state.units.find(u => u.id === id) : null;
+}
+
+function table(headers, rows) {
+    try {
+        const head = headers.map(h => `<th>${h}</th>`).join('');
+        const body = rows.length ? 
+            rows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('') : 
+            `<tr><td colspan="${headers.length}"><small>لا توجد بيانات</small></td></tr>`;
+        
+        return `<table class="table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+    } catch (error) {
+        console.error('Error creating table:', error);
+        return '<p>خطأ في عرض الجدول</p>';
+    }
+}
+
+/* ===== UNDO/REDO SYSTEM ===== */
+function undo() {
+    if (historyIndex > 0) {
+        historyIndex--;
+        const restoredState = JSON.parse(JSON.stringify(historyStack[historyIndex]));
+        Object.keys(state).forEach(key => delete state[key]);
+        Object.assign(state, restoredState);
+        saveState();
+        nav(currentView, currentParam);
+        updateUndoRedoButtons();
+    }
+}
+
+function redo() {
+    if (historyIndex < historyStack.length - 1) {
+        historyIndex++;
+        const restoredState = JSON.parse(JSON.stringify(historyStack[historyIndex]));
+        Object.keys(state).forEach(key => delete state[key]);
+        Object.assign(state, restoredState);
+        saveState();
+        nav(currentView, currentParam);
+        updateUndoRedoButtons();
+    }
 }
 
 function updateUndoRedoButtons() {
-    // Placeholder for undo/redo functionality
+    try {
+        const undoBtn = document.getElementById('undo-btn');
+        const redoBtn = document.getElementById('redo-btn');
+        
+        if (undoBtn) {
+            undoBtn.disabled = historyIndex <= 0;
+            undoBtn.classList.toggle('opacity-50', historyIndex <= 0);
+        }
+        if (redoBtn) {
+            redoBtn.disabled = historyIndex >= historyStack.length - 1;
+            redoBtn.classList.toggle('opacity-50', historyIndex >= historyStack.length - 1);
+        }
+    } catch (error) {
+        console.error('Error updating undo/redo buttons:', error);
+    }
 }
