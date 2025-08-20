@@ -18,7 +18,14 @@ let currentParam = null;
 
 
 /* ===== CORE APP INITIALIZATION ===== */
-document.addEventListener('DOMContentLoaded', initializeApp);
+document.addEventListener('DOMContentLoaded', () => {
+    try {
+        initializeApp();
+    } catch (error) {
+        console.error('Failed to initialize app:', error);
+        alert('حدث خطأ في بدء التطبيق: ' + error.message);
+    }
+});
 
 async function initializeApp() {
     console.log('Starting application initialization...');
@@ -130,11 +137,16 @@ function setupUI() {
         
         navItems.forEach(item => {
             item.addEventListener('click', (e) => {
-                e.preventDefault();
-                const navId = item.dataset.nav;
-                console.log('Navigation clicked:', navId);
-                if (navId) {
-                    nav(navId);
+                try {
+                    e.preventDefault();
+                    const navId = item.dataset.nav;
+                    console.log('Navigation clicked:', navId);
+                    if (navId) {
+                        nav(navId);
+                    }
+                } catch (error) {
+                    console.error('Navigation click error:', error);
+                    showNotification('حدث خطأ في التنقل: ' + error.message, 'danger');
                 }
             });
         });
