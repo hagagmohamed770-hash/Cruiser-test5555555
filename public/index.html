@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة الاستثمار العقاري</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>">
+</head>
+<body>
+    <!-- شاشة تسجيل الدخول -->
+    <div id="loginScreen" class="login-screen">
+        <div class="login-container">
+            <div class="login-header">
+                <h1>🏢 نظام إدارة الاستثمار العقاري</h1>
+                <p>تسجيل الدخول للنظام</p>
+            </div>
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="username">اسم المستخدم</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">كلمة المرور</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">تسجيل الدخول</button>
+            </form>
+            <div class="login-footer">
+                <p>بيانات تسجيل الدخول الافتراضية:</p>
+                <p><strong>اسم المستخدم:</strong> admin</p>
+                <p><strong>كلمة المرور:</strong> admin123</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- التطبيق الرئيسي -->
+    <div id="app" class="app" style="display: none;">
+        <!-- الشريط الجانبي -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🏢 النظام</h2>
+                <button id="sidebarToggle" class="sidebar-toggle">☰</button>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="#dashboard" class="nav-link active" data-section="dashboard">
+                        📊 لوحة التحكم
+                    </a></li>
+                    <li><a href="#customers" class="nav-link" data-section="customers">
+                        👥 العملاء
+                    </a></li>
+                    <li><a href="#units" class="nav-link" data-section="units">
+                        🏠 الوحدات
+                    </a></li>
+                    <li><a href="#contracts" class="nav-link" data-section="contracts">
+                        📋 العقود
+                    </a></li>
+                    <li><a href="#installments" class="nav-link" data-section="installments">
+                        💰 الأقساط
+                    </a></li>
+                    <li><a href="#partners" class="nav-link" data-section="partners">
+                        🤝 الشركاء
+                    </a></li>
+                    <li><a href="#brokers" class="nav-link" data-section="brokers">
+                        🏆 السماسرة
+                    </a></li>
+                    <li><a href="#vouchers" class="nav-link" data-section="vouchers">
+                        🧾 الإيصالات
+                    </a></li>
+                    <li><a href="#treasury" class="nav-link" data-section="treasury">
+                        🏦 الخزينة
+                    </a></li>
+                    <li><a href="#reports" class="nav-link" data-section="reports">
+                        📈 التقارير
+                    </a></li>
+                    <li><a href="#audit" class="nav-link" data-section="audit">
+                        📝 سجل التغييرات
+                    </a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <!-- المحتوى الرئيسي -->
+        <main class="main-content">
+            <!-- شريط العنوان -->
+            <header class="top-header">
+                <div class="header-left">
+                    <h1 id="pageTitle">لوحة التحكم</h1>
+                </div>
+                <div class="header-right">
+                    <div class="header-controls">
+                        <select id="themeSelector" class="theme-selector">
+                            <option value="light">☀️ فاتح</option>
+                            <option value="dark">🌙 داكن</option>
+                        </select>
+                        <select id="fontSelector" class="font-selector">
+                            <option value="normal">خط عادي</option>
+                            <option value="large">خط كبير</option>
+                        </select>
+                        <button id="logoutBtn" class="btn btn-secondary">تسجيل الخروج</button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- محتوى الصفحات -->
+            <div class="content">
+                <!-- لوحة التحكم -->
+                <section id="dashboard" class="page-section active">
+                    <div class="dashboard-grid">
+                        <div class="dashboard-card">
+                            <h3>📊 ملخص عام</h3>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <span class="stat-number" id="totalCustomers">0</span>
+                                    <span class="stat-label">العملاء</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-number" id="totalUnits">0</span>
+                                    <span class="stat-label">الوحدات</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-number" id="totalContracts">0</span>
+                                    <span class="stat-label">العقود</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-number" id="totalRevenue">0</span>
+                                    <span class="stat-label">الإيرادات</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="dashboard-card">
+                            <h3>💰 الأقساط المستحقة</h3>
+                            <div id="overdueInstallments" class="overdue-list">
+                                <!-- سيتم ملؤها بالبيانات -->
+                            </div>
+                        </div>
+                        <div class="dashboard-card">
+                            <h3>📈 الإحصائيات الأخيرة</h3>
+                            <div id="recentStats" class="recent-stats">
+                                <!-- سيتم ملؤها بالبيانات -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- العملاء -->
+                <section id="customers" class="page-section">
+                    <div class="section-header">
+                        <h2>إدارة العملاء</h2>
+                        <button id="addCustomerBtn" class="btn btn-primary">إضافة عميل جديد</button>
+                    </div>
+                    <div class="filters">
+                        <input type="text" id="customerSearch" placeholder="بحث في العملاء..." class="search-input">
+                        <select id="customerStatusFilter" class="filter-select">
+                            <option value="">جميع الحالات</option>
+                            <option value="active">نشط</option>
+                            <option value="inactive">غير نشط</option>
+                        </select>
+                    </div>
+                    <div class="table-container">
+                        <table id="customersTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>الاسم</th>
+                                    <th>الهاتف</th>
+                                    <th>البريد الإلكتروني</th>
+                                    <th>العنوان</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customersTableBody">
+                                <!-- سيتم ملؤها بالبيانات -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- الوحدات -->
+                <section id="units" class="page-section">
+                    <div class="section-header">
+                        <h2>إدارة الوحدات</h2>
+                        <button id="addUnitBtn" class="btn btn-primary">إضافة وحدة جديدة</button>
+                    </div>
+                    <div class="filters">
+                        <input type="text" id="unitSearch" placeholder="بحث في الوحدات..." class="search-input">
+                        <select id="unitTypeFilter" class="filter-select">
+                            <option value="">جميع الأنواع</option>
+                            <option value="apartment">شقة</option>
+                            <option value="villa">فيلا</option>
+                            <option value="office">مكتب</option>
+                            <option value="shop">محل</option>
+                        </select>
+                        <select id="unitStatusFilter" class="filter-select">
+                            <option value="">جميع الحالات</option>
+                            <option value="available">متاح</option>
+                            <option value="sold">مباع</option>
+                            <option value="rented">مؤجر</option>
+                        </select>
+                    </div>
+                    <div class="table-container">
+                        <table id="unitsTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>الاسم</th>
+                                    <th>النوع</th>
+                                    <th>المساحة</th>
+                                    <th>السعر</th>
+                                    <th>الموقع</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="unitsTableBody">
+                                <!-- سيتم ملؤها بالبيانات -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- العقود -->
+                <section id="contracts" class="page-section">
+                    <div class="section-header">
+                        <h2>إدارة العقود</h2>
+                        <button id="addContractBtn" class="btn btn-primary">إضافة عقد جديد</button>
+                    </div>
+                    <div class="filters">
+                        <input type="text" id="contractSearch" placeholder="بحث في العقود..." class="search-input">
+                        <select id="contractTypeFilter" class="filter-select">
+                            <option value="">جميع الأنواع</option>
+                            <option value="sale">بيع</option>
+                            <option value="rent">إيجار</option>
+                        </select>
+                        <select id="contractStatusFilter" class="filter-select">
+                            <option value="">جميع الحالات</option>
+                            <option value="active">نشط</option>
+                            <option value="completed">مكتمل</option>
+                            <option value="cancelled">ملغي</option>
+                        </select>
+                    </div>
+                    <div class="table-container">
+                        <table id="contractsTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>رقم العقد</th>
+                                    <th>العميل</th>
+                                    <th>الوحدة</th>
+                                    <th>النوع</th>
+                                    <th>تاريخ البداية</th>
+                                    <th>المبلغ الإجمالي</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="contractsTableBody">
+                                <!-- سيتم ملؤها بالبيانات -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- الأقساط -->
+                <section id="installments" class="page-section">
+                    <div class="section-header">
+                        <h2>إدارة الأقساط</h2>
+                        <button id="generateInstallmentsBtn" class="btn btn-primary">توليد أقساط</button>
+                    </div>
+                    <div class="filters">
+                        <input type="text" id="installmentSearch" placeholder="بحث في الأقساط..." class="search-input">
+                        <select id="installmentStatusFilter" class="filter-select">
+                            <option value="">جميع الحالات</option>
+                            <option value="pending">معلق</option>
+                            <option value="paid">مدفوع</option>
+                            <option value="overdue">متأخر</option>
+                        </select>
+                    </div>
+                    <div class="table-container">
+                        <table id="installmentsTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>العقد</th>
+                                    <th>المبلغ</th>
+                                    <th>تاريخ الاستحقاق</th>
+                                    <th>تاريخ الدفع</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="installmentsTableBody">
+                                <!-- سيتم ملؤها بالبيانات -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- الشركاء -->
+                <section id="partners" class="page-section">
+                    <div class="section-header">
+                        <h2>إدارة الشركاء</h2>
+                        <button id="addPartnerBtn" class="btn btn-primary">إضافة شريك جديد</button>
+                    </div>
+                    <div class="filters">
+                        <input type="text" id="partnerSearch" placeholder="بحث في الشركاء..." class="search-input">
+                        <select id="partnerStatusFilter" class="filter-select">
+                            <option value="">جميع الحالات</option>
+                            <option value="active">نشط</option>
+                            <option value="inactive">غير نشط</option>
+                        </select>
+                    </div>
+                    <div class="table-container">
+                        <table id="partnersTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>الاسم</th>
+                                    <th>الهاتف</th>
+                                    <th>البريد الإلكتروني</th>
+                                    <th>نسبة المشاركة</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="partnersTableBody">
+                                <!-- سيتم ملؤها بالبيانات -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- السماسرة -->
+                <section id="brokers" class="page-section">
+                    <div class="section-header">
+                        <h2>إدارة السماسرة</h2>
+                        <button id="addBrokerBtn" class="btn btn-primary">إضافة سمسار جديد</button>
+                    </div>
+                    <div class="filters">
+                        <input type="text" id="brokerSearch" placeholder="بحث في السماسرة..." class="search-input">
+                        <select id="brokerStatusFilter" class="filter-select">
+                            <option value="">جميع الحالات</option>
+                            <option value="active">نشط</option>
+                            <option value="inactive">غير نشط</option>
+                        </select>
+                    </div>
+                    <div class="table-container">
+                        <table id="brokersTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>الاسم</th>
+                                    <th>الهاتف</th>
+                                    <th>البريد الإلكتروني</th>
+                                    <th>نسبة العمولة</th>
+                                    <th>الحالة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="brokersTableBody">
+                                <!-- سيتم ملؤها بالبيانات -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- الإيصالات -->
+                <section id="vouchers" class="page-section">
+                    <div class="section-header">
+                        <h2>إدارة الإيصالات</h2>
+                        <button id="addVoucherBtn" class="btn btn-primary">إضافة إيصال جديد</button>
+                    </div>
+                    <div class="filters">
+                        <input type="text" id="voucherSearch" placeholder="بحث في الإيصالات..." class="search-input">
+                        <select id="voucherTypeFilter" class="filter-select">
+                            <option value="">جميع الأنواع</option>
+                            <option value="income">دخل</option>
+                            <option value="expense">مصروف</option>
+                        </select>
+                    </div>
+                    <div class="table-container">
+                        <table id="vouchersTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>النوع</th>
+                                    <th>المبلغ</th>
+                                    <th>الوصف</th>
+                                    <th>التاريخ</th>
+                                    <th>الخزينة</th>
+                                    <th>الإجراءات</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vouchersTableBody">
+                                <!-- سيتم ملؤها بالبيانات -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- الخزينة -->
+                <section id="treasury" class="page-section">
+                    <div class="section-header">
+                        <h2>إدارة الخزينة</h2>
+                        <button id="addSafeBtn" class="btn btn-primary">إضافة خزينة جديدة</button>
+                        <button id="addTransferBtn" class="btn btn-secondary">تحويل مالي</button>
+                    </div>
+                    <div class="treasury-overview">
+                        <div class="safe-cards" id="safeCards">
+                            <!-- سيتم ملؤها بالبيانات -->
+                        </div>
+                    </div>
+                    <div class="transfers-section">
+                        <h3>التحويلات المالية</h3>
+                        <div class="table-container">
+                            <table id="transfersTable" class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>من</th>
+                                        <th>إلى</th>
+                                        <th>المبلغ</th>
+                                        <th>الوصف</th>
+                                        <th>التاريخ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transfersTableBody">
+                                    <!-- سيتم ملؤها بالبيانات -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- التقارير -->
+                <section id="reports" class="page-section">
+                    <div class="section-header">
+                        <h2>التقارير</h2>
+                    </div>
+                    <div class="reports-grid">
+                        <div class="report-card">
+                            <h3>📊 تقرير المبيعات</h3>
+                            <div id="salesReport" class="report-content">
+                                <!-- سيتم ملؤها بالبيانات -->
+                            </div>
+                        </div>
+                        <div class="report-card">
+                            <h3>📈 تقرير الإيجارات</h3>
+                            <div id="rentalsReport" class="report-content">
+                                <!-- سيتم ملؤها بالبيانات -->
+                            </div>
+                        </div>
+                        <div class="report-card">
+                            <h3>💰 تقرير الأقساط</h3>
+                            <div id="installmentsReport" class="report-content">
+                                <!-- سيتم ملؤها بالبيانات -->
+                            </div>
+                        </div>
+                        <div class="report-card">
+                            <h3>🤝 تقرير الشركاء</h3>
+                            <div id="partnersReport" class="report-content">
+                                <!-- سيتم ملؤها بالبيانات -->
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- سجل التغييرات -->
+                <section id="audit" class="page-section">
+                    <div class="section-header">
+                        <h2>سجل التغييرات</h2>
+                    </div>
+                    <div class="filters">
+                        <select id="auditActionFilter" class="filter-select">
+                            <option value="">جميع العمليات</option>
+                            <option value="create">إنشاء</option>
+                            <option value="update">تحديث</option>
+                            <option value="delete">حذف</option>
+                        </select>
+                        <select id="auditTableFilter" class="filter-select">
+                            <option value="">جميع الجداول</option>
+                            <option value="customers">العملاء</option>
+                            <option value="units">الوحدات</option>
+                            <option value="contracts">العقود</option>
+                        </select>
+                    </div>
+                    <div class="table-container">
+                        <table id="auditTable" class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>التاريخ</th>
+                                    <th>العملية</th>
+                                    <th>الجدول</th>
+                                    <th>المستخدم</th>
+                                    <th>التفاصيل</th>
+                                </tr>
+                            </thead>
+                            <tbody id="auditTableBody">
+                                <!-- سيتم ملؤها بالبيانات -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- النوافذ المنبثقة -->
+    
+    <!-- نافذة إضافة/تعديل العميل -->
+    <div id="customerModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="customerModalTitle">إضافة عميل جديد</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <form id="customerForm" class="modal-form">
+                <div class="form-group">
+                    <label for="customerName">اسم العميل *</label>
+                    <input type="text" id="customerName" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="customerPhone">رقم الهاتف</label>
+                    <input type="tel" id="customerPhone" name="phone">
+                </div>
+                <div class="form-group">
+                    <label for="customerEmail">البريد الإلكتروني</label>
+                    <input type="email" id="customerEmail" name="email">
+                </div>
+                <div class="form-group">
+                    <label for="customerAddress">العنوان</label>
+                    <textarea id="customerAddress" name="address" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="customerNotes">ملاحظات</label>
+                    <textarea id="customerNotes" name="notes" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="customerStatus">الحالة</label>
+                    <select id="customerStatus" name="status">
+                        <option value="active">نشط</option>
+                        <option value="inactive">غير نشط</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary modal-cancel">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- نافذة إضافة/تعديل الوحدة -->
+    <div id="unitModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="unitModalTitle">إضافة وحدة جديدة</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <form id="unitForm" class="modal-form">
+                <div class="form-group">
+                    <label for="unitName">اسم الوحدة *</label>
+                    <input type="text" id="unitName" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="unitType">نوع الوحدة *</label>
+                    <select id="unitType" name="type" required>
+                        <option value="">اختر النوع</option>
+                        <option value="apartment">شقة</option>
+                        <option value="villa">فيلا</option>
+                        <option value="office">مكتب</option>
+                        <option value="shop">محل</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="unitArea">المساحة (م²)</label>
+                    <input type="number" id="unitArea" name="area" step="0.01">
+                </div>
+                <div class="form-group">
+                    <label for="unitPrice">السعر *</label>
+                    <input type="number" id="unitPrice" name="price" step="0.01" required>
+                </div>
+                <div class="form-group">
+                    <label for="unitLocation">الموقع</label>
+                    <input type="text" id="unitLocation" name="location">
+                </div>
+                <div class="form-group">
+                    <label for="unitDescription">الوصف</label>
+                    <textarea id="unitDescription" name="description" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="unitStatus">الحالة</label>
+                    <select id="unitStatus" name="status">
+                        <option value="available">متاح</option>
+                        <option value="sold">مباع</option>
+                        <option value="rented">مؤجر</option>
+                    </select>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-secondary modal-cancel">إلغاء</button>
+                    <button type="submit" class="btn btn-primary">حفظ</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- مؤشر التحميل -->
+    <div id="loadingOverlay" class="loading-overlay" style="display: none;">
+        <div class="loading-spinner"></div>
+        <p>جاري التحميل...</p>
+    </div>
+
+    <!-- الإشعارات -->
+    <div id="notifications" class="notifications"></div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>

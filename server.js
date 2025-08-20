@@ -1,0 +1,132 @@
+const express = require('express');
+const cors = require('cors');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
+const path = require('path');
+const Database = require('./database/database');
+
+// إنشاء تطبيق Express
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+// إعدادات الأمان
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            imgSrc: ["'self'", "data:", "https:"],
+        },
+    },
+}));
+
+// Rate Limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 دقيقة
+    max: 100, // حد أقصى 100 طلب لكل IP
+    message: {
+        success: false,
+        message: 'تم تجاوز الحد الأقصى للطلبات. يرجى المحاولة لاحقاً.'
+    }
+});
+app.use('/api/', limiter);
+
+// Middleware
+app.use(compression());
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+// الملفات الثابتة
+app.use(express.static(path.join(__dirname, 'public')));
+
+// تهيئة قاعدة البيانات
+const db = new Database();
+db.init().then(() => {
+    console.log('✅ تم تهيئة قاعدة البيانات بنجاح');
+}).catch(err => {
+    console.error('❌ خطأ في تهيئة قاعدة البيانات:', err);
+});
+
+// استيراد المسارات
+const authRoutes = require('./routes/auth');
+const customerRoutes = require('./routes/customers');
+const unitRoutes = require('./routes/units');
+const contractRoutes = require('./routes/contracts');
+const installmentRoutes = require('./routes/installments');
+const partnerRoutes = require('./routes/partners');
+const brokerRoutes = require('./routes/brokers');
+const voucherRoutes = require('./routes/vouchers');
+const treasuryRoutes = require('./routes/treasury');
+const reportRoutes = require('./routes/reports');
+const auditRoutes = require('./routes/audit');
+
+// تسجيل المسارات
+app.use('/api/auth', authRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/units', unitRoutes);
+app.use('/api/contracts', contractRoutes);
+app.use('/api/installments', installmentRoutes);
+app.use('/api/partners', partnerRoutes);
+app.use('/api/brokers', brokerRoutes);
+app.use('/api/vouchers', voucherRoutes);
+app.use('/api/treasury', treasuryRoutes);
+app.use('/api/reports', reportRoutes);
+app.use('/api/audit', auditRoutes);
+
+// فحص صحة الخادم
+app.get('/api/health', (req, res) => {
+    res.json({
+        success: true,
+        message: 'الخادم يعمل بشكل طبيعي',
+        timestamp: new Date().toISOString(),
+        version: '1.0.0'
+    });
+});
+
+// الصفحة الرئيسية
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// معالجة الأخطاء العامة
+app.use((err, req, res, next) => {
+    console.error('خطأ في الخادم:', err);
+    res.status(500).json({
+        success: false,
+        message: 'خطأ داخلي في الخادم',
+        error: process.env.NODE_ENV === 'development' ? err.message : undefined
+    });
+});
+
+// معالجة المسارات غير الموجودة
+app.use('*', (req, res) => {
+    res.status(404).json({
+        success: false,
+        message: 'المسار غير موجود'
+    });
+});
+
+// بدء الخادم
+app.listen(PORT, () => {
+    console.log(`🚀 الخادم يعمل على المنفذ ${PORT}`);
+    console.log(`📱 يمكنك الوصول للنظام على: http://localhost:${PORT}`);
+    console.log(`🔧 وضع التشغيل: ${process.env.NODE_ENV || 'development'}`);
+});
+
+// معالجة إغلاق التطبيق
+process.on('SIGINT', async () => {
+    console.log('\n🛑 إغلاق الخادم...');
+    await db.close();
+    process.exit(0);
+});
+
+process.on('SIGTERM', async () => {
+    console.log('\n🛑 إغلاق الخادم...');
+    await db.close();
+    process.exit(0);
+});
+
+module.exports = app;
