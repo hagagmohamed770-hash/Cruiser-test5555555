@@ -15,38 +15,12 @@ let historyIndex = -1;
 let currentView = 'dash';
 let currentParam = null;
 
-// Loading screen management
-function showLoadingScreen() {
-    const loadingOverlay = document.getElementById('loading-overlay');
-    if (loadingOverlay) {
-        loadingOverlay.classList.remove('hidden');
-        console.log('Loading screen shown');
-    }
-}
 
-function hideLoadingScreen() {
-    const loadingOverlay = document.getElementById('loading-overlay');
-    if (loadingOverlay) {
-        loadingOverlay.classList.add('hidden');
-        console.log('Loading screen hidden');
-    }
-}
-
-// Force hide loading screen after a maximum time
-function forceHideLoadingScreen() {
-    setTimeout(() => {
-        hideLoadingScreen();
-        console.log('Loading screen force hidden');
-    }, 5000); // 5 seconds maximum
-}
 
 /* ===== CORE APP INITIALIZATION ===== */
 document.addEventListener('DOMContentLoaded', initializeApp);
 
 async function initializeApp() {
-    // Show loading screen
-    showLoadingScreen();
-    forceHideLoadingScreen(); // Force hide after 5 seconds maximum
 
     // Register service worker for PWA functionality
     if ('serviceWorker' in navigator) {
@@ -90,9 +64,6 @@ async function initializeApp() {
     } catch (error) {
         console.error("Fatal Error: Failed to load or migrate data.", error);
         showNotification("حدث خطأ فادح أثناء تحميل البيانات. سيعمل التطبيق بحالة فارغة.", 'danger');
-        
-        // Hide loading screen even if there's an error
-        hideLoadingScreen();
     }
 
     // Ensure default safe exists
@@ -108,10 +79,7 @@ async function initializeApp() {
     updateUndoRedoButtons();
     nav('dash');
 
-    // Hide loading screen after everything is ready
-    setTimeout(() => {
-        hideLoadingScreen();
-    }, 1000);
+
 }
 
 function initializeDefaultState() {

@@ -148,13 +148,7 @@
         <span class="nav-icon">☰</span>
     </button>
 
-    <!-- Loading Overlay -->
-    <div id="loading-overlay" class="loading-overlay">
-        <div class="loading-spinner">
-            <div class="loading"></div>
-            <p>جاري التحميل...</p>
-        </div>
-    </div>
+
 
     <!-- Notification Container -->
     <div id="notifications" class="notifications-container"></div>
@@ -163,28 +157,7 @@
     <script src="db.js"></script>
     <script src="app.js"></script>
     
-    <!-- Hide loading screen after page load -->
-    <script>
-        // Hide loading screen immediately when page is ready
-        window.addEventListener('load', function() {
-            setTimeout(function() {
-                const loadingOverlay = document.getElementById('loading-overlay');
-                if (loadingOverlay) {
-                    loadingOverlay.style.display = 'none';
-                    console.log('Loading screen hidden by direct script');
-                }
-            }, 2000); // Hide after 2 seconds
-        });
-        
-        // Also hide if there's any error
-        window.addEventListener('error', function() {
-            const loadingOverlay = document.getElementById('loading-overlay');
-            if (loadingOverlay) {
-                loadingOverlay.style.display = 'none';
-                console.log('Loading screen hidden due to error');
-            }
-        });
-    </script>
+
     
     <!-- Service Worker Registration -->
     <script>

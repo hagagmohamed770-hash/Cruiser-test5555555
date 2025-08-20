@@ -1138,44 +1138,7 @@ body {
     }
 }
 
-/* Loading Overlay */
-.loading-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(4px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 2000;
-    transition: opacity 0.3s ease-out;
-}
 
-.loading-overlay.hidden {
-    opacity: 0;
-    pointer-events: none;
-}
-
-.loading-overlay[style*="display: none"] {
-    opacity: 0;
-    pointer-events: none;
-}
-
-.loading-spinner {
-    background: var(--bg-primary);
-    border-radius: var(--radius-xl);
-    padding: var(--space-8);
-    text-align: center;
-    box-shadow: var(--shadow-xl);
-}
-
-.loading-spinner p {
-    margin-top: var(--space-4);
-    color: var(--text-secondary);
-}
 
 /* Mobile Menu Toggle */
 .mobile-menu-toggle {
