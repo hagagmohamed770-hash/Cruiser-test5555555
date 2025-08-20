@@ -103,31 +103,99 @@ function mergeLoadedState(loadedState) {
 function setupUI() {
     applySettings();
     
+    // Setup navigation event listeners
+    document.querySelectorAll('.nav-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            e.preventDefault();
+            const navId = item.dataset.nav;
+            if (navId) {
+                nav(navId);
+            }
+        });
+    });
+
     // Theme selector
-    document.getElementById('themeSel').addEventListener('change', async (e) => {
+    document.getElementById('theme-selector').addEventListener('change', async (e) => {
         state.settings.theme = e.target.value;
         await persist();
+        showNotification('تم تغيير المظهر بنجاح!', 'success');
     });
     
     // Font size selector
-    document.getElementById('fontSel').addEventListener('change', async (e) => {
-        state.settings.font = Number(e.target.value);
+    document.getElementById('font-selector').addEventListener('change', async (e) => {
+        state.settings.font = e.target.value;
         await persist();
+        showNotification('تم تغيير حجم الخط بنجاح!', 'success');
     });
     
     // Lock button
-    document.getElementById('lockBtn').addEventListener('click', async () => {
+    document.getElementById('lock-btn').addEventListener('click', async () => {
         const pass = prompt('ضع كلمة مرور أو اتركها فارغة لإلغاء القفل', '');
         state.locked = !!pass;
         state.settings.pass = pass || null;
         await persist();
-        alert(state.locked ? 'تم تفعيل القفل' : 'تم إلغاء القفل');
+        showNotification(state.locked ? 'تم تفعيل القفل' : 'تم إلغاء القفل', 'success');
         checkLock();
     });
     
     // Undo/Redo buttons
-    document.getElementById('undoBtn').addEventListener('click', undo);
-    document.getElementById('redoBtn').addEventListener('click', redo);
+    document.getElementById('undo-btn').addEventListener('click', undo);
+    document.getElementById('redo-btn').addEventListener('click', redo);
+
+    // Mobile menu toggle
+    const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    
+    if (mobileMenuToggle && sidebar) {
+        mobileMenuToggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+        });
+    }
+
+    // Close sidebar when clicking outside on mobile
+    document.addEventListener('click', (e) => {
+        if (window.innerWidth <= 1024) {
+            if (!sidebar.contains(e.target) && !mobileMenuToggle.contains(e.target)) {
+                sidebar.classList.remove('open');
+            }
+        }
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey && e.key === 'z') {
+            e.preventDefault();
+            undo();
+        }
+        if (e.ctrlKey && e.key === 'y') {
+            e.preventDefault();
+            redo();
+        }
+        if (e.key === 'Escape') {
+            // Close mobile menu
+            if (window.innerWidth <= 1024) {
+                sidebar.classList.remove('open');
+            }
+        }
+    });
+
+    // Apply current settings
+    if (state.settings) {
+        if (state.settings.theme) {
+            const themeSelector = document.getElementById('theme-selector');
+            if (themeSelector) {
+                themeSelector.value = state.settings.theme;
+                applySettings({ theme: state.settings.theme });
+            }
+        }
+        if (state.settings.font) {
+            const fontSelector = document.getElementById('font-selector');
+            if (fontSelector) {
+                fontSelector.value = state.settings.font;
+                applySettings({ font: state.settings.font });
+            }
+        }
+    }
 }
 
 /* ===== DATA PERSISTENCE & MIGRATION ===== */
@@ -241,11 +309,17 @@ function saveState() {
 }
 
 function updateUndoRedoButtons() {
-    const undoBtn = document.getElementById('undoBtn');
-    const redoBtn = document.getElementById('redoBtn');
+    const undoBtn = document.getElementById('undo-btn');
+    const redoBtn = document.getElementById('redo-btn');
     
-    if (undoBtn) undoBtn.disabled = historyIndex <= 0;
-    if (redoBtn) redoBtn.disabled = historyIndex >= historyStack.length - 1;
+    if (undoBtn) {
+        undoBtn.disabled = historyIndex <= 0;
+        undoBtn.classList.toggle('opacity-50', historyIndex <= 0);
+    }
+    if (redoBtn) {
+        redoBtn.disabled = historyIndex >= historyStack.length - 1;
+        redoBtn.classList.toggle('opacity-50', historyIndex >= historyStack.length - 1);
+    }
 }
 
 // Global keyboard shortcuts
@@ -292,10 +366,31 @@ function egp(value) {
     return isFinite(value) ? fmt.format(value) + ' ج.م' : '';
 }
 
-function applySettings() {
+function applySettings(settings = null) {
+    if (settings) {
+        Object.assign(state.settings, settings);
+    }
+    
     if (state && state.settings) {
-        document.documentElement.setAttribute('data-theme', state.settings.theme || 'dark');
-        document.documentElement.style.fontSize = (state.settings.font || 16) + 'px';
+        // Apply theme
+        const theme = state.settings.theme || 'light';
+        document.documentElement.setAttribute('data-theme', theme);
+        
+        // Apply font size
+        const font = state.settings.font || 'default';
+        const fontSizes = {
+            'small': '14px',
+            'default': '16px',
+            'large': '18px'
+        };
+        document.documentElement.style.fontSize = fontSizes[font] || fontSizes.default;
+        
+        // Update selectors if they exist
+        const themeSelector = document.getElementById('theme-selector');
+        const fontSelector = document.getElementById('font-selector');
+        
+        if (themeSelector) themeSelector.value = theme;
+        if (fontSelector) fontSelector.value = font;
     }
 }
 
@@ -393,14 +488,58 @@ function nav(id, param = null) {
     const route = routes.find(x => x.id === id);
     if (!route) return;
     
-    // Update active tab
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    const tab = document.getElementById('tab-' + id);
-    if (tab) tab.classList.add('active');
+    // Update active navigation
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    const navItem = document.querySelector(`[data-nav="${id}"]`);
+    if (navItem) navItem.classList.add('active');
     
     // Render the view
     route.render(param);
     htmx.process(view);
+}
+
+function updatePageHeader(title, subtitle, icon) {
+    const pageTitle = document.getElementById('page-title');
+    const pageSubtitle = document.getElementById('page-subtitle');
+    const pageIcon = document.getElementById('page-icon');
+    
+    if (pageTitle) pageTitle.textContent = title;
+    if (pageSubtitle) pageSubtitle.textContent = subtitle;
+    if (pageIcon) pageIcon.textContent = icon;
+}
+
+function showNotification(message, type = 'info', duration = 5000) {
+    const notificationsContainer = document.getElementById('notifications');
+    if (!notificationsContainer) return;
+    
+    const notification = document.createElement('div');
+    notification.className = `notification notification-${type} fade-in`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-icon">${getNotificationIcon(type)}</span>
+            <span class="notification-message">${message}</span>
+            <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+        </div>
+    `;
+    
+    notificationsContainer.appendChild(notification);
+    
+    // Auto remove after duration
+    setTimeout(() => {
+        if (notification.parentElement) {
+            notification.remove();
+        }
+    }, duration);
+}
+
+function getNotificationIcon(type) {
+    const icons = {
+        success: '✅',
+        warning: '⚠️',
+        danger: '❌',
+        info: 'ℹ️'
+    };
+    return icons[type] || icons.info;
 }
 
 /* ===== UI UTILITY FUNCTIONS ===== */
@@ -684,30 +823,138 @@ function renderDash() {
     const totalContracts = state.contracts?.length || 0;
     const totalPartners = state.partners?.length || 0;
     
+    // Calculate some statistics
+    const activeContracts = state.contracts?.filter(c => c.status === 'نشط').length || 0;
+    const totalRevenue = state.contracts?.reduce((sum, c) => sum + (c.price || 0), 0) || 0;
+    
     view.innerHTML = `
         <div class="kpis">
-            <div class="card">
-                <h3>إجمالي العملاء</h3>
-                <div class="big">${totalCustomers}</div>
+            <div class="kpi-card hover-lift">
+                <div class="kpi-icon primary">👥</div>
+                <div class="kpi-value">${totalCustomers}</div>
+                <div class="kpi-label">إجمالي العملاء</div>
+                <div class="kpi-change positive">
+                    <span>↗</span>
+                    <span>+${Math.floor(totalCustomers * 0.1)} هذا الشهر</span>
+                </div>
             </div>
-            <div class="card">
-                <h3>إجمالي الوحدات</h3>
-                <div class="big">${totalUnits}</div>
+            
+            <div class="kpi-card hover-lift">
+                <div class="kpi-icon success">🏠</div>
+                <div class="kpi-value">${totalUnits}</div>
+                <div class="kpi-label">إجمالي الوحدات</div>
+                <div class="kpi-change positive">
+                    <span>↗</span>
+                    <span>متاح للبيع</span>
+                </div>
             </div>
-            <div class="card">
-                <h3>إجمالي العقود</h3>
-                <div class="big">${totalContracts}</div>
+            
+            <div class="kpi-card hover-lift">
+                <div class="kpi-icon warning">📋</div>
+                <div class="kpi-value">${totalContracts}</div>
+                <div class="kpi-label">إجمالي العقود</div>
+                <div class="kpi-change positive">
+                    <span>↗</span>
+                    <span>${activeContracts} نشط</span>
+                </div>
             </div>
-            <div class="card">
-                <h3>إجمالي الشركاء</h3>
-                <div class="big">${totalPartners}</div>
+            
+            <div class="kpi-card hover-lift">
+                <div class="kpi-icon info">👨‍💼</div>
+                <div class="kpi-value">${totalPartners}</div>
+                <div class="kpi-label">إجمالي الشركاء</div>
+                <div class="kpi-change positive">
+                    <span>↗</span>
+                    <span>نشطون</span>
+                </div>
             </div>
         </div>
-        <div class="panel">
-            <h3>مرحباً بك في مدير الاستثمار العقاري</h3>
-            <p>استخدم القائمة الجانبية للتنقل بين الأقسام المختلفة.</p>
+        
+        <div class="grid grid-2">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="nav-icon">📊</span>
+                        الإحصائيات السريعة
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="flex justify-between items-center mb-4">
+                        <span>إجمالي الإيرادات</span>
+                        <span class="font-bold text-success">${totalRevenue.toLocaleString()} ج.م</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-4">
+                        <span>العقود النشطة</span>
+                        <span class="font-bold">${activeContracts}</span>
+                    </div>
+                    <div class="flex justify-between items-center mb-4">
+                        <span>الوحدات المتاحة</span>
+                        <span class="font-bold">${totalUnits - (state.contracts?.length || 0)}</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <span class="nav-icon">🎯</span>
+                        الإجراءات السريعة
+                    </div>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-2 gap-4">
+                        <button class="btn btn-primary" onclick="nav('customers')">
+                            <span class="nav-icon">➕</span>
+                            إضافة عميل
+                        </button>
+                        <button class="btn btn-success" onclick="nav('units')">
+                            <span class="nav-icon">🏠</span>
+                            إضافة وحدة
+                        </button>
+                        <button class="btn btn-warning" onclick="nav('contracts')">
+                            <span class="nav-icon">📋</span>
+                            إنشاء عقد
+                        </button>
+                        <button class="btn btn-info" onclick="nav('reports')">
+                            <span class="nav-icon">📈</span>
+                            عرض التقارير
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mt-6">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="nav-icon">🏢</span>
+                    مرحباً بك في نظام إدارة الاستثمار العقاري
+                </div>
+            </div>
+            <div class="p-6">
+                <p class="text-secondary mb-4">
+                    نظام متكامل لإدارة جميع جوانب الاستثمار العقاري. يمكنك إدارة العملاء، الوحدات، العقود، والشركاء بسهولة وكفاءة.
+                </p>
+                <div class="flex gap-4">
+                    <div class="flex items-center gap-2">
+                        <span class="nav-icon">✅</span>
+                        <span>إدارة شاملة للعملاء</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="nav-icon">✅</span>
+                        <span>تتبع الوحدات والعقود</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <span class="nav-icon">✅</span>
+                        <span>تقارير مفصلة</span>
+                    </div>
+                </div>
+            </div>
         </div>
     `;
+    
+    // Update page header
+    updatePageHeader('لوحة التحكم', 'نظرة عامة على النظام', '📊');
 }
 
 function renderOldDash() {
