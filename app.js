@@ -25,11 +25,15 @@ async function initializeApp() {
 
     // Register service worker for PWA functionality
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('/sw.js')
-                .then(reg => console.log('ServiceWorker registered.', reg))
-                .catch(err => console.error('ServiceWorker registration failed:', err));
-        });
+        try {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('ServiceWorker registered successfully:', reg))
+                    .catch(err => console.warn('ServiceWorker registration failed (non-critical):', err));
+            });
+        } catch (error) {
+            console.warn('ServiceWorker setup failed (non-critical):', error);
+        }
     }
 
     // Initialize state with default structure
