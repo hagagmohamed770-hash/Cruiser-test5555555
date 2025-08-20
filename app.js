@@ -15,15 +15,29 @@ let historyIndex = -1;
 let currentView = 'dash';
 let currentParam = null;
 
+// Loading screen management
+function showLoadingScreen() {
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if (loadingOverlay) {
+        loadingOverlay.classList.remove('hidden');
+        console.log('Loading screen shown');
+    }
+}
+
+function hideLoadingScreen() {
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if (loadingOverlay) {
+        loadingOverlay.classList.add('hidden');
+        console.log('Loading screen hidden');
+    }
+}
+
 /* ===== CORE APP INITIALIZATION ===== */
 document.addEventListener('DOMContentLoaded', initializeApp);
 
 async function initializeApp() {
-    // Show loading overlay
-    const loadingOverlay = document.getElementById('loading-overlay');
-    if (loadingOverlay) {
-        loadingOverlay.classList.remove('hidden');
-    }
+    // Show loading screen
+    showLoadingScreen();
 
     // Register service worker for PWA functionality
     if ('serviceWorker' in navigator) {
@@ -68,11 +82,8 @@ async function initializeApp() {
         console.error("Fatal Error: Failed to load or migrate data.", error);
         showNotification("حدث خطأ فادح أثناء تحميل البيانات. سيعمل التطبيق بحالة فارغة.", 'danger');
         
-        // Hide loading overlay even if there's an error
-        const loadingOverlay = document.getElementById('loading-overlay');
-        if (loadingOverlay) {
-            loadingOverlay.classList.add('hidden');
-        }
+        // Hide loading screen even if there's an error
+        hideLoadingScreen();
     }
 
     // Ensure default safe exists
@@ -88,13 +99,10 @@ async function initializeApp() {
     updateUndoRedoButtons();
     nav('dash');
 
-    // Hide loading overlay after everything is ready
+    // Hide loading screen after everything is ready
     setTimeout(() => {
-        const loadingOverlay = document.getElementById('loading-overlay');
-        if (loadingOverlay) {
-            loadingOverlay.classList.add('hidden');
-        }
-    }, 500);
+        hideLoadingScreen();
+    }, 1000);
 }
 
 function initializeDefaultState() {
@@ -121,18 +129,19 @@ function mergeLoadedState(loadedState) {
 }
 
 function setupUI() {
-    applySettings();
-    
-    // Setup navigation event listeners
-    document.querySelectorAll('.nav-item').forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            const navId = item.dataset.nav;
-            if (navId) {
-                nav(navId);
-            }
+    try {
+        applySettings();
+        
+        // Setup navigation event listeners
+        document.querySelectorAll('.nav-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const navId = item.dataset.nav;
+                if (navId) {
+                    nav(navId);
+                }
+            });
         });
-    });
 
     // Theme selector
     document.getElementById('theme-selector').addEventListener('change', async (e) => {
@@ -215,6 +224,9 @@ function setupUI() {
                 applySettings({ font: state.settings.font });
             }
         }
+    } catch (error) {
+        console.error('Error in setupUI:', error);
+        showNotification('حدث خطأ في إعداد الواجهة', 'danger');
     }
 }
 
