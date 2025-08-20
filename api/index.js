@@ -4,11 +4,10 @@ const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
-const Database = require('./database/database');
+const Database = require('../database/database');
 
 // إنشاء تطبيق Express
 const app = express();
-const PORT = process.env.PORT || 3000;
 
 // إعدادات الأمان
 app.use(helmet({
@@ -39,9 +38,6 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// الملفات الثابتة
-app.use(express.static(path.join(__dirname, 'public')));
-
 // تهيئة قاعدة البيانات
 const db = new Database();
 db.init().then(() => {
@@ -51,18 +47,18 @@ db.init().then(() => {
 });
 
 // استيراد المسارات
-const authRoutes = require('./routes/auth');
-const customerRoutes = require('./routes/customers');
-const unitRoutes = require('./routes/units');
-const contractRoutes = require('./routes/contracts');
-const installmentRoutes = require('./routes/installments');
-const partnerRoutes = require('./routes/partners');
-const brokerRoutes = require('./routes/brokers');
-const voucherRoutes = require('./routes/vouchers');
-const treasuryRoutes = require('./routes/treasury');
-const reportRoutes = require('./routes/reports');
-const backupRoutes = require('./routes/backup');
-const auditRoutes = require('./routes/audit');
+const authRoutes = require('../routes/auth');
+const customerRoutes = require('../routes/customers');
+const unitRoutes = require('../routes/units');
+const contractRoutes = require('../routes/contracts');
+const installmentRoutes = require('../routes/installments');
+const partnerRoutes = require('../routes/partners');
+const brokerRoutes = require('../routes/brokers');
+const voucherRoutes = require('../routes/vouchers');
+const treasuryRoutes = require('../routes/treasury');
+const reportRoutes = require('../routes/reports');
+const backupRoutes = require('../routes/backup');
+const auditRoutes = require('../routes/audit');
 
 // تسجيل المسارات
 app.use('/api/auth', authRoutes);
@@ -88,16 +84,6 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// الصفحة الرئيسية
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-// معالجة جميع المسارات الأخرى - مهم لـ Vercel
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
 // معالجة الأخطاء العامة
 app.use((err, req, res, next) => {
   console.error('خطأ في الخادم:', err);
@@ -106,28 +92,6 @@ app.use((err, req, res, next) => {
     message: 'خطأ داخلي في الخادم',
     error: process.env.NODE_ENV === 'development' ? err.message : undefined
   });
-});
-
-// بدء الخادم فقط إذا لم يكن على Vercel
-if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
-  app.listen(PORT, () => {
-    console.log(`🚀 الخادم يعمل على المنفذ ${PORT}`);
-    console.log(`📱 يمكنك الوصول للنظام على: http://localhost:${PORT}`);
-    console.log(`🔧 وضع التشغيل: ${process.env.NODE_ENV || 'development'}`);
-  });
-}
-
-// معالجة إغلاق التطبيق
-process.on('SIGINT', async () => {
-  console.log('\n🛑 إغلاق الخادم...');
-  await db.close();
-  process.exit(0);
-});
-
-process.on('SIGTERM', async () => {
-  console.log('\n🛑 إغلاق الخادم...');
-  await db.close();
-  process.exit(0);
 });
 
 module.exports = app;

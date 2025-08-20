@@ -1,18 +1,14 @@
 {
   "version": 2,
-  "builds": [
-    {
-      "src": "server.js",
-      "use": "@vercel/node",
-      "config": {
-        "maxDuration": 30
-      }
+  "functions": {
+    "api/index.js": {
+      "maxDuration": 30
     }
-  ],
+  },
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "/server.js"
+      "dest": "/api/index.js"
     },
     {
       "src": "/(.*)",
@@ -21,7 +17,6 @@
   ],
   "env": {
     "NODE_ENV": "production",
-    "PORT": "3000",
     "JWT_SECRET": "vercel-secret-key-2025",
     "COMPANY_NAME": "شركة إدارة الاستثمار العقاري",
     "CURRENCY": "ريال",

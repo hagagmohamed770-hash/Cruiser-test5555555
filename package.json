@@ -2,7 +2,7 @@
   "name": "real-estate-management-system",
   "version": "5.0.0",
   "description": "نظام إدارة الاستثمار العقاري الشامل مع قاعدة بيانات SQLite",
-  "main": "server.js",
+  "main": "api/index.js",
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
