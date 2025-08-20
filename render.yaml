@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: real-estate-system
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: JWT_SECRET
+        generateValue: true
+      - key: COMPANY_NAME
+        value: "شركة إدارة الاستثمار العقاري"
+      - key: CURRENCY
+        value: "ريال"
+      - key: LANGUAGE
+        value: "ar"
+      - key: TIMEZONE
+        value: "Asia/Riyadh"
+      - key: BACKUP_AUTO
+        value: "true"
+      - key: BACKUP_INTERVAL
+        value: "daily"
+      - key: BACKUP_RETENTION_DAYS
+        value: "30"
+      - key: RATE_LIMIT_WINDOW_MS
+        value: "900000"
+      - key: RATE_LIMIT_MAX_REQUESTS
+        value: "100"
+      - key: BCRYPT_ROUNDS
+        value: "10"
+      - key: JWT_EXPIRES_IN
+        value: "24h"
+      - key: DEBUG
+        value: "false"
+      - key: LOG_LEVEL
+        value: "info"
+      - key: CORS_ORIGIN
+        value: "*"
