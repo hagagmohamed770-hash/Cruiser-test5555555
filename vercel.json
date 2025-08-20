@@ -14,13 +14,5 @@
       "src": "/(.*)",
       "dest": "/public/$1"
     }
-  ],
-  "env": {
-    "NODE_ENV": "production",
-    "JWT_SECRET": "vercel-secret-key-2025",
-    "COMPANY_NAME": "شركة إدارة الاستثمار العقاري",
-    "CURRENCY": "ريال",
-    "LANGUAGE": "ar",
-    "TIMEZONE": "Asia/Riyadh"
-  }
+  ]
 }
