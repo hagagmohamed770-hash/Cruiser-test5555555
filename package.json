@@ -17,7 +17,8 @@
     "investment",
     "express",
     "nodejs",
-    "vercel"
+    "vercel",
+    "github"
   ],
   "author": "Real Estate Management Team",
   "license": "MIT",
@@ -40,10 +41,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/hagagmohamed770-hash/Test-vercal.git"
+    "url": "https://github.com/hagagmohamed770-hash/Cruiser-test5555555.git"
   },
   "bugs": {
-    "url": "https://github.com/hagagmohamed770-hash/Test-vercal/issues"
+    "url": "https://github.com/hagagmohamed770-hash/Cruiser-test5555555/issues"
   },
-  "homepage": "https://github.com/hagagmohamed770-hash/Test-vercal#readme"
+  "homepage": "https://github.com/hagagmohamed770-hash/Cruiser-test5555555#readme"
 }

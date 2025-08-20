@@ -5,13 +5,13 @@
 ## 🚀 النشر على Vercel
 
 ### **الرابط المباشر:**
-https://test-vercal.vercel.app
+https://cruiser-test5555555.vercel.app
 
 ### **كيفية النشر:**
 1. اذهب إلى https://vercel.com
 2. سجل حساب جديد
 3. اربط GitHub
-4. اختر هذا الريبو: `hagagmohamed770-hash/Test-vercal`
+4. اختر هذا الريبو: `hagagmohamed770-hash/Cruiser-test5555555`
 5. انقر "Deploy"
 
 ## 🔑 بيانات الدخول
@@ -54,6 +54,7 @@ https://test-vercal.vercel.app
 - `FREE_DEPLOYMENT_GUIDE.md` - دليل النشر المجاني
 - `TERMUX_SETUP.md` - دليل التشغيل على Termux
 - `TERMUX_QUICK_START.md` - دليل سريع لـ Termux
+- `VERCEL_DEPLOY_GUIDE.md` - دليل النشر على Vercel
 
 ## 📞 الدعم
 
